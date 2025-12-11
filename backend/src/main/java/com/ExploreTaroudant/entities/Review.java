@@ -1,10 +1,13 @@
 package com.ExploreTaroudant.entities;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name="reviews")
+@Data
 public class Review {
 
     @Id

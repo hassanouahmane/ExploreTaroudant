@@ -1,10 +1,13 @@
 package com.ExploreTaroudant.entities;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.time.LocalDate;
 
 @Entity
 @Table(name="events")
+@Data
 public class Event {
 
     @Id

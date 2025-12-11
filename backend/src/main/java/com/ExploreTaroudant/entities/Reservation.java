@@ -1,9 +1,12 @@
 package com.ExploreTaroudant.entities;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.time.LocalDate;
 
 @Entity
+@Data
 @Table(name="reservations")
 public class Reservation {
 

@@ -1,10 +1,13 @@
 package com.ExploreTaroudant.entities;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.math.BigDecimal;
 
 @Entity
 @Table(name="circuits")
+@Data
 public class Circuit {
 
     @Id

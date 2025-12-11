@@ -1,10 +1,13 @@
 package com.ExploreTaroudant.entities;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.math.BigDecimal;
 
 @Entity
 @Table(name="activities")
+@Data
 public class Activity {
 
     @Id
@@ -28,5 +31,6 @@ public class Activity {
 
     private String duration;
 
-    // Getters and Setters
+
+// Getters and Setters
 }

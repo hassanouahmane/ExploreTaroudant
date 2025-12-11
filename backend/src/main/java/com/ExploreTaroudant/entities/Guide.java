@@ -1,9 +1,11 @@
 package com.ExploreTaroudant.entities;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 @Entity
 @Table(name="guides")
+@Data
 public class Guide {
 
     @Id
