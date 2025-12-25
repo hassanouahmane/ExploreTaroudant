@@ -1,0 +1,59 @@
+services:
+  # Service de la base de données (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345  # ATTENTION: Mot de passe à changer pour la production.
+      MYSQL_DATABASE: tourism_platform_db # Crée la base de données au démarrage si elle n'existe pas.
+    ports:
+      # Expose le port de MySQL sur l'hôte (3307) pour éviter les conflits avec une instance locale.
+      - "3307:3306" 
+    volumes:
+      # Utilise un volume Docker pour rendre les données de la base de données persistantes.
+      - db-data:/var/lib/mysql 
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Service Backend (Spring Boot / Java 21)
+  backend:
+    build: ./backend # Construit l'image à partir du Dockerfile dans le dossier backend
+    container_name: backend_app
+    depends_on:
+      - db # S'assure que le service 'db' est démarré et prêt avant le backend
+    ports:
+      - "8080:8080" # Map le port 8080 du conteneur au port 8080 de l'hôte
+    dns:
+      - 8.8.8.8
+    environment:
+      # Injecte le mot de passe de la base de données dans le contexte Spring.
+      # Doit correspondre à MYSQL_ROOT_PASSWORD du service 'db'.
+      - DB_PASSWORD=12345 
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Service Frontend (Next.js)
+  frontend:
+    build: ./frontend # Construit l'image à partir du Dockerfile dans le dossier frontend
+    container_name: frontend_app
+    ports:
+      # Map le port 3000 (Next.js) du conteneur au port 3001 de l'hôte.
+      # L'application sera accessible sur http://localhost:3001
+      - "3001:3000"
+    depends_on:
+      - backend # Le frontend dépend du backend pour les appels API.
+    networks:
+      - app-network
+    restart: unless-stopped
+
+# Définition du réseau commun pour que les conteneurs puissent communiquer entre eux.
+networks:
+  app-network:
+    driver: bridge
+
+# Définition du volume pour la persistance des données de la BD.
+volumes:
+  db-data:
+    driver: local
