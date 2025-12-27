@@ -9,36 +9,43 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import backend.entities.Status;
 
 
     @Service
-    @RequiredArgsConstructor
+   // @RequiredArgsConstructor
     @Transactional
     public class ReviewService {
 
         private final ReviewRepository reviewRepository;
         private final UserRepository userRepository;
         private final PlaceRepository placeRepository;
-
-        public Review createReview(Long userId, Long placeId, int rating, String comment) {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-            Place place = placeRepository.findById(placeId)
-                    .orElseThrow(() -> new RuntimeException("Lieu non trouvé"));
-
-            if (rating < 1 || rating > 5) {
-                throw new RuntimeException("La note doit être entre 1 et 5");
-            }
-
-            Review review = new Review();
-            review.setUser(user);
-            review.setPlace(place);
-            review.setRating(rating);
-            review.setComment(comment);
-
-            return reviewRepository.save(review);
+        public ReviewService(ReviewRepository reviewRepository, UserRepository userRepository, PlaceRepository placeRepository) {
+            this.reviewRepository = reviewRepository;
+            this.userRepository = userRepository;
+            this.placeRepository = placeRepository;
         }
+@Transactional
+public Review createReview(Long userId, Long placeId, int rating, String comment) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+    Place place = placeRepository.findById(placeId)
+            .filter(p -> p.getStatus() == Status.ACTIVE)
+            .orElseThrow(() -> new RuntimeException("Lieu non trouvé ou non disponible pour les avis"));
+
+    if (rating < 1 || rating > 5) {
+        throw new RuntimeException("La note doit être entre 1 et 5");
+    }
+
+    Review review = new Review();
+    review.setUser(user);
+    review.setPlace(place);
+    review.setRating(rating);
+    review.setComment(comment);
+    
+    return reviewRepository.save(review);
+}
 
         @Transactional(readOnly = true)
         public List<Review> getReviewsByPlace(Long placeId) {

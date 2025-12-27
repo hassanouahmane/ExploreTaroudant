@@ -1,34 +1,46 @@
 package backend.service;
 
+import static java.lang.Math.log;
+
 import backend.dto.AuthResponse;
 import backend.dto.LoginRequest;
 import backend.dto.RegisterRequest;
+import backend.entities.Role;
 import backend.entities.User;
+import backend.entities.Status;
 import backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import backend.exception.EmailAlreadyExistsException;
+
 @Service
-@RequiredArgsConstructor
+@Slf4j  
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
-    @Transactional  // ✅ Au niveau de la méthode
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, 
+                       JwtService jwtService, AuthenticationManager authenticationManager) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+    }
+
+    @Transactional  
     public AuthResponse register(RegisterRequest request) {
-        System.out.println("=== REGISTER DEBUG ===");
-        System.out.println("FullName: " + request.getFullName());
-        System.out.println("Email: " + request.getEmail());
-        System.out.println("Phone: " + request.getPhone());
-        System.out.println("Role: " + request.getRole());
-
-        // Vérifier si l'email existe déjà
-        if (userRepository.existsByEmail(request.getEmail())) {
-            System.err.println("❌ Email déjà utilisé");
-            throw new RuntimeException("Cet email est déjà utilisé");
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new EmailAlreadyExistsException("Cet email est déjà utilisé");
         }
 
         // Créer le nouvel utilisateur
@@ -38,38 +50,27 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setPhone(request.getPhone());
 
+        Role role = Role.TOURIST;
         // Utiliser le rôle du request
         try {
-            user.setRole(User.Role.valueOf(request.getRole().toUpperCase()));
+            role = Role.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            System.err.println("⚠️ Rôle invalide: " + request.getRole() + ", utilisation de TOURIST");
-            user.setRole(User.Role.TOURIST);
+          //  log.warn("Invalid role '{}' provided, defaulting to TOURIST", request.getRole());
+            user.setRole(Role.TOURIST);
+        }
+        user.setRole(role);
+        if (role == Role.GUIDE){
+            user.setStatus(Status.PENDING);
+        }else{
+
+            user.setStatus(Status.ACTIVE);
         }
 
-        user.setStatus(User.Status.ACTIVE);
+        User savedUser = userRepository.save(user);
 
-        System.out.println("User avant save: " + user);
-
-        // ✅ SOLUTION 1: Utiliser saveAndFlush pour forcer le commit immédiat
-        User savedUser = userRepository.saveAndFlush(user);
-
-        System.out.println("✅ User sauvegardé avec ID: " + savedUser.getId());
-
-        // ✅ Vérification immédiate
-        boolean exists = userRepository.existsById(savedUser.getId());
-        System.out.println("✅ User existe dans la BDD : " + exists);
-
-        // ✅ Vérification par email
-        User verification = userRepository.findByEmail(savedUser.getEmail()).orElse(null);
-        System.out.println("✅ Vérification par email : " + (verification != null ? "TROUVÉ" : "NON TROUVÉ"));
-
-        System.out.println("=== FIN REGISTER ===");
-
-        // Générer un token
-        String token = "mock-jwt-token-" + savedUser.getId();
-
+        String jwtToken = (savedUser.getStatus() == Status.ACTIVE) ? jwtService.generateToken(savedUser) : null;
         return new AuthResponse(
-                token,
+                jwtToken,
                 savedUser.getId(),
                 savedUser.getFullName(),
                 savedUser.getEmail(),
@@ -79,34 +80,25 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        System.out.println("=== LOGIN DEBUG ===");
-        System.out.println("Email: " + request.getEmail());
-
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()
+                )
+        );
+      
+        
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> {
-                    System.err.println("❌ Utilisateur non trouvé");
-                    return new RuntimeException("Email ou mot de passe incorrect");
-                });
+                .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
 
-        System.out.println("User trouvé: " + user.getFullName());
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            System.err.println("❌ Mot de passe incorrect");
-            throw new RuntimeException("Email ou mot de passe incorrect");
-        }
-
-        if (user.getStatus() != User.Status.ACTIVE) {
-            System.err.println("❌ Compte suspendu");
+        if (user.getStatus() != Status.ACTIVE) {
             throw new RuntimeException("Votre compte a été suspendu");
         }
 
-        String token = "mock-jwt-token-" + user.getId();
-
-        System.out.println("✅ Login réussi");
-        System.out.println("=== FIN LOGIN ===");
-
+        String jwtToken = jwtService.generateToken(user);
+        
         return new AuthResponse(
-                token,
+                jwtToken,
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
@@ -120,12 +112,18 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
     }
 
+    @Transactional(readOnly = true)
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+    }
+
     @Transactional
     public User updateProfile(Long userId, RegisterRequest request) {
         User user = getCurrentUser(userId);
 
         if (!user.getEmail().equals(request.getEmail()) &&
-                userRepository.existsByEmail(request.getEmail())) {
+                userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Cet email est déjà utilisé");
         }
 
@@ -139,12 +137,12 @@ public class AuthService {
 
         if (request.getRole() != null && !request.getRole().isEmpty()) {
             try {
-                user.setRole(User.Role.valueOf(request.getRole().toUpperCase()));
+                user.setRole(Role.valueOf(request.getRole().toUpperCase()));
             } catch (IllegalArgumentException e) {
-                System.err.println("⚠️ Rôle invalide ignoré: " + request.getRole());
+                //log.warn("Invalid role '{}' provided during profile update", request.getRole());
             }
         }
 
-        return userRepository.saveAndFlush(user);
+        return userRepository.save(user);
     }
 }

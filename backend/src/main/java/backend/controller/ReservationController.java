@@ -6,33 +6,37 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import backend.entities.User;
 
 @RestController
 @RequestMapping("/api/tourist/reservations")
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class ReservationController {
 
     private final ReservationService reservationService;
-
-    @PostMapping
+    public ReservationController(ReservationService reservationService) {
+        this.reservationService = reservationService;
+    }
+  @PostMapping
     public ResponseEntity<Reservation> createReservation(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal User currentUser, 
             @RequestBody Reservation reservation) {
-        return ResponseEntity.ok(reservationService.createReservation(userId, reservation));
+        return ResponseEntity.ok(reservationService.createReservation(currentUser.getId(), reservation));
     }
 
-    @GetMapping("/my")
+     @GetMapping("/my")
     public ResponseEntity<List<Reservation>> getMyReservations(
-            @RequestHeader("X-User-Id") Long userId) {
-        return ResponseEntity.ok(reservationService.getMyReservations(userId));
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(reservationService.getMyReservations(currentUser.getId()));
     }
 
-    @DeleteMapping("/{id}")
+   @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancelReservation(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal User currentUser,
             @PathVariable Long id) {
-        reservationService.cancelReservation(userId, id);
+        reservationService.cancelReservation(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
     }
 }

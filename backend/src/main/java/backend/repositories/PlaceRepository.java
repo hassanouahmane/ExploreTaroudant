@@ -1,5 +1,6 @@
 package backend.repositories;
 
+import backend.entities.Status;
 
 import backend.entities.Place;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,4 +11,8 @@ import java.util.List;
 public interface PlaceRepository extends JpaRepository<Place, Long> {
     List<Place> findByNameContainingIgnoreCase(String name);
     List<Place> findByCityContainingIgnoreCase(String city);
+
+    List<Place> findByStatus(Status status);
+
+    List<Place> findByStatusOrderByCreatedAtDesc(Status status);
 }

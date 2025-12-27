@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 @Transactional
 public class ReservationService {
 
@@ -17,29 +17,36 @@ public class ReservationService {
     private final ActivityRepository activityRepository;
     private final CircuitRepository circuitRepository;
     private final UserRepository userRepository;
-
+    
+    public ReservationService(ReservationRepository reservationRepository, ActivityRepository activityRepository, CircuitRepository circuitRepository, UserRepository userRepository) {
+        this.reservationRepository = reservationRepository;
+        this.activityRepository = activityRepository;
+        this.circuitRepository = circuitRepository;
+        this.userRepository = userRepository;
+    }
     public Reservation createReservation(Long userId, Reservation reservationRequest) {
-        // 1. Récupérer l'utilisateur
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // 2. Créer une nouvelle réservation pour éviter les références détachées
         Reservation reservation = new Reservation();
         reservation.setUser(user);
         reservation.setReservationDate(reservationRequest.getReservationDate());
-        reservation.setStatus(Reservation.Status.CONFIRMED);
+        // On commence en PENDING si le guide doit confirmer, ou CONFIRMED si c'est automatique
+        reservation.setStatus(Reservation.Status.CONFIRMED); 
 
-        // 3. Gérer activité
-        if (reservationRequest.getActivity() != null && reservationRequest.getActivity().getId() != null) {
+        // Validation de l'activité (doit être ACTIVE)
+        if (reservationRequest.getActivity() != null) {
             Activity activity = activityRepository.findById(reservationRequest.getActivity().getId())
-                    .orElseThrow(() -> new RuntimeException("Activité non trouvée avec id: " + reservationRequest.getActivity().getId()));
+                    .filter(a -> a.getStatus() == Status.ACTIVE)
+                    .orElseThrow(() -> new RuntimeException("Activité non disponible ou non validée"));
             reservation.setActivity(activity);
         }
 
-        // 4. Gérer circuit
-        if (reservationRequest.getCircuit() != null && reservationRequest.getCircuit().getId() != null) {
+        // Validation du circuit (doit être ACTIVE)
+        if (reservationRequest.getCircuit() != null) {
             Circuit circuit = circuitRepository.findById(reservationRequest.getCircuit().getId())
-                    .orElseThrow(() -> new RuntimeException("Circuit non trouvé avec id: " + reservationRequest.getCircuit().getId()));
+                    .filter(c -> c.getStatus() == Status.ACTIVE)
+                    .orElseThrow(() -> new RuntimeException("Circuit non disponible ou non validé"));
             reservation.setCircuit(circuit);
         }
 

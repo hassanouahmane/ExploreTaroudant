@@ -3,21 +3,46 @@ package backend.controller;
 
 import backend.entities.Event;
 import backend.service.EventService;
+import backend.entities.User;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 @RestController
 @RequestMapping("/api/events")
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class EventController {
 
     private final EventService eventService;
 
-    @GetMapping
+    public EventController(EventService eventService) {
+        this.eventService =  eventService;
+    }
+
+  
+
+
+    @GetMapping("/all") 
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Event>> getAllEvents() {
         return ResponseEntity.ok(eventService.getAllEvents());
+    }
+
+    // PUBLIC : Uniquement les événements validés
+    @GetMapping
+    public ResponseEntity<List<Event>> getAllActiveEvents() {
+        return ResponseEntity.ok(eventService.getAllActiveEvents());
+    }
+
+    // ADMIN : Modération
+    @GetMapping("/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Event>> getPendingEvents() {
+        return ResponseEntity.ok(eventService.getPendingEvents());
     }
 
     @GetMapping("/upcoming")
@@ -31,8 +56,11 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<Event> createEvent(@RequestBody Event event) {
-        return ResponseEntity.ok(eventService.createEvent(event));
+    @PreAuthorize("hasAnyRole('ADMIN', 'GUIDE')")
+    public ResponseEntity<Event> createEvent(
+            @RequestBody Event event, 
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(eventService.createEvent(event, currentUser));
     }
 
     @PutMapping("/{id}")
@@ -43,8 +71,15 @@ public class EventController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
         eventService.deleteEvent(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/validate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Event> validateEvent(@PathVariable Long id) {
+        return ResponseEntity.ok(eventService.validateEvent(id));
     }
 }

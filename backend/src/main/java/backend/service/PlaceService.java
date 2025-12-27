@@ -1,6 +1,8 @@
 package backend.service;
 import java.util.stream.Collectors;
-
+import backend.entities.Status;
+import backend.entities.User;
+import backend.entities.Role;
 import backend.entities.Place;
 import backend.repositories.PlaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,11 +11,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PlaceService {
 
     private final PlaceRepository placeRepository;
+    
+    public PlaceService(PlaceRepository placeRepository) {
+        this.placeRepository = placeRepository;
+    }
 
     public List<Place> getAllPlaces() {
         return placeRepository.findAll();
@@ -24,6 +30,9 @@ public class PlaceService {
                 .orElseThrow(() -> new RuntimeException("Lieu non trouvé avec l'id: " + id));
     }
 
+    public List<Place> getPendingPlaces() {
+        return placeRepository.findByStatus(Status.PENDING);
+    }
     public List<Place> searchPlaces(String query) {
         if (query == null || query.trim().isEmpty()) {
             return getAllPlaces();
@@ -41,7 +50,13 @@ public class PlaceService {
     }
 
     @Transactional
-    public Place createPlace(Place place) {
+    public Place createPlace(Place place, User currentUser) {
+        if (currentUser.getRole() == Role.ADMIN) {
+            place.setStatus(Status.ACTIVE); // L'admin ajoute directement
+        } else {
+            place.setStatus(Status.PENDING); // Le guide propose, l'admin devra valider
+        }
+        place.setProposedBy(currentUser);
         return placeRepository.save(place);
     }
 
@@ -63,6 +78,16 @@ public class PlaceService {
     public void deletePlace(Long id) {
         Place place = getPlaceById(id);
         placeRepository.delete(place);
+    }
+    public List<Place> getAllActivePlaces() {
+        return placeRepository.findByStatus(Status.ACTIVE);
+    }
+
+    @Transactional
+    public Place validatePlace(Long id) {
+        Place place = getPlaceById(id);
+        place.setStatus(Status.ACTIVE);
+        return placeRepository.save(place);
     }
 
 }

@@ -7,22 +7,27 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import backend.entities.User;
+
 
 @RestController
 @RequestMapping("/api/reviews")
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class ReviewController {
 
     private final ReviewService reviewService;
-
-    @PostMapping
+    public ReviewController(ReviewService reviewService) {
+        this.reviewService = reviewService;
+    }
+   @PostMapping
     public ResponseEntity<Review> createReview(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal User currentUser, // Récupéré du JWT
             @RequestParam Long placeId,
             @RequestParam int rating,
             @RequestParam String comment) {
-        return ResponseEntity.ok(reviewService.createReview(userId, placeId, rating, comment));
+        return ResponseEntity.ok(reviewService.createReview(currentUser.getId(), placeId, rating, comment));
     }
 
     @GetMapping("/place/{placeId}")
@@ -40,20 +45,20 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.getReviewById(id));
     }
 
-    @PutMapping("/{id}")
+   @PutMapping("/{id}")
     public ResponseEntity<Review> updateReview(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal User currentUser,
             @PathVariable Long id,
             @RequestParam int rating,
             @RequestParam String comment) {
-        return ResponseEntity.ok(reviewService.updateReview(userId, id, rating, comment));
+        return ResponseEntity.ok(reviewService.updateReview(currentUser.getId(), id, rating, comment));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteReview(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal User currentUser,
             @PathVariable Long id) {
-        reviewService.deleteReview(userId, id);
+        reviewService.deleteReview(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
     }
 

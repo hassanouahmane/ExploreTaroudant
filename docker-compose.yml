@@ -4,7 +4,7 @@ services:
     image: mysql:8.0
     container_name: mysql_db
     environment:
-      MYSQL_ROOT_PASSWORD: 12345  # ATTENTION: Mot de passe à changer pour la production.
+      MYSQL_ROOT_PASSWORD: 12345  
       MYSQL_DATABASE: tourism_platform_db # Crée la base de données au démarrage si elle n'existe pas.
     ports:
       # Expose le port de MySQL sur l'hôte (3307) pour éviter les conflits avec une instance locale.
