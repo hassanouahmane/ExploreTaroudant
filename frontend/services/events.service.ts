@@ -2,7 +2,10 @@ import { apiRequest } from "@/lib/api-client"
 import type { Event } from "@/lib/types"
 
 export const eventsService = {
-  async getAllEvents(): Promise<Event[]> {
+  // --- ROUTES PUBLIQUES ---
+
+  // Récupère uniquement les événements actifs (validés)
+  async getAllActiveEvents(): Promise<Event[]> {
     return apiRequest<Event[]>("/events")
   },
 
@@ -14,6 +17,9 @@ export const eventsService = {
     return apiRequest<Event>(`/events/${id}`)
   },
 
+  // --- ROUTES GUIDES & ADMIN ---
+
+  // Création d'un événement 
   async createEvent(data: Omit<Event, "id">): Promise<Event> {
     return apiRequest<Event>("/events", {
       method: "POST",
@@ -21,10 +27,30 @@ export const eventsService = {
     })
   },
 
+  // Mise à jour d'un événement
   async updateEvent(id: number, data: Partial<Event>): Promise<Event> {
     return apiRequest<Event>(`/events/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
+    })
+  },
+
+  // --- ROUTES ADMIN UNIQUEMENT ---
+
+  // Récupérer absolument tous les événements (Dashboard Admin)
+  async getAllEventsForAdmin(): Promise<Event[]> {
+    return apiRequest<Event[]>("/events/all")
+  },
+
+  // Récupérer les événements en attente de validation
+  async getPendingEvents(): Promise<Event[]> {
+    return apiRequest<Event[]>("/events/pending")
+  },
+
+  // Valider un événement (Hamza en propose un, l'Admin le valide)
+  async validateEvent(id: number): Promise<Event> {
+    return apiRequest<Event>(`/events/${id}/validate`, {
+      method: "PUT",
     })
   },
 

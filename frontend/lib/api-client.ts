@@ -1,41 +1,53 @@
-const API_BASE_URL = "http://localhost:8080/api"
+const API_BASE_URL = "http://localhost:8080/api";
 
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message)
-    this.name = "ApiError"
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
   }
 }
 
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
-  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null
+  // 1. Récupération sécurisée du token 
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...options.headers,
+ //  On définit les headers comme un objet simple indexable
+  const headers: Record<string, string> = {
+    ...Object.fromEntries(new Headers(options.headers).entries()),
+  };
+
+  // 2. On ajoute le Content-Type si ce n'est pas du FormData (images)
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
   }
 
+  // 3. On ajoute l'Authorization (plus d'erreur TypeScript ici)
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`
-  }
-
-  if (userId) {
-    headers["X-User-Id"] = userId
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers,
-  })
+    headers, // TypeScript accepte Record<string, string> ici car il est compatible avec HeadersInit
+  });
 
+  // 5. Gestion des erreurs centralisée
   if (!response.ok) {
-    const error = await response.text()
-    throw new ApiError(response.status, error || response.statusText)
+    let errorMessage = "Une erreur est survenue";
+    try {
+      // On essaie de lire le message d'erreur envoyé par  backend 
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+    } catch {
+      errorMessage = await response.text() || response.statusText;
+    }
+    throw new ApiError(response.status, errorMessage);
   }
 
-  return response.json()
+  // 6. Gestion des réponses vides (No Content 204)
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return response.json();
 }

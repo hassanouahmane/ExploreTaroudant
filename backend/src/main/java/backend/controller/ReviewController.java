@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import backend.entities.User;
 
@@ -61,7 +63,13 @@ public class ReviewController {
         reviewService.deleteReview(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
     }
+    // Dans backend.controller.ReviewController
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Review>> getAllReviews() {
+        return ResponseEntity.ok(reviewService.getAllReviews());
+    }
     @GetMapping("/place/{placeId}/average")
     public ResponseEntity<Double> getAverageRating(@PathVariable Long placeId) {
         return ResponseEntity.ok(reviewService.getAverageRatingForPlace(placeId));

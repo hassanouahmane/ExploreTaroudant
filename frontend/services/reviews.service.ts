@@ -2,49 +2,74 @@ import { apiRequest } from "@/lib/api-client"
 import type { Review } from "@/lib/types"
 
 export const reviewsService = {
-    async createReview(data: {
-        placeId: number
-        rating: number
-        comment: string
-    }): Promise<Review> {
-        // ENVOYEZ les paramètres dans l'URL comme le backend l'attend
-        return apiRequest<Review>(
-            `/reviews?placeId=${data.placeId}&rating=${data.rating}&comment=${encodeURIComponent(data.comment)}`,
-            {
-                method: "POST",
-            }
-        )
-    },
+  
+  
+    //Créer un nouvel avis pour un lieu. 
+  async createReview(placeId: number, rating: number, comment: string): Promise<Review> {
+    const params = new URLSearchParams({
+      placeId: placeId.toString(),
+      rating: rating.toString(),
+      comment: comment
+    });
 
-    // Autres méthodes restent inchangées
-    async getReviewsByPlace(placeId: number): Promise<Review[]> {
-        return apiRequest<Review[]>(`/reviews/place/${placeId}`)
-    },
+    return apiRequest<Review>(`/reviews?${params.toString()}`, {
+      method: "POST"
+    });
+  },
 
-    async getReviewsByUser(userId: number): Promise<Review[]> {
-        return apiRequest<Review[]>(`/reviews/user/${userId}`)
-    },
+  // Admin: Récupérer tous les avis.
+async getAllReviewsAdmin(): Promise<Review[]> {
+  return apiRequest<Review[]>("/reviews/all", { 
+    method: "GET" 
+  });
+},
+  
+    //Récupérer tous les avis d'un lieu spécifique.
+   
+  async getReviewsByPlace(placeId: number): Promise<Review[]> {
+    return apiRequest<Review[]>(`/reviews/place/${placeId}`, {
+      method: "GET"
+    });
+  },
 
-    async getReviewById(id: number): Promise<Review> {
-        return apiRequest<Review>(`/reviews/${id}`)
-    },
+  
+   // Récupérer la note moyenne d'un lieu.
+   
+  async getAverageRating(placeId: number): Promise<number> {
+    return apiRequest<number>(`/reviews/place/${placeId}/average`, {
+      method: "GET"
+    });
+  },
 
-    async updateReview(id: number, data: { rating: number; comment: string }): Promise<Review> {
-        return apiRequest<Review>(
-            `/reviews/${id}?rating=${data.rating}&comment=${encodeURIComponent(data.comment)}`,
-            {
-                method: "PUT",
-            }
-        )
-    },
+  
+  //  Récupérer les avis d'un utilisateur spécifique.
+   
+  async getReviewsByUser(userId: number): Promise<Review[]> {
+    return apiRequest<Review[]>(`/reviews/user/${userId}`, {
+      method: "GET"
+    });
+  },
 
-    async deleteReview(id: number): Promise<void> {
-        return apiRequest<void>(`/reviews/${id}`, {
-            method: "DELETE",
-        })
-    },
+  /**
+   * Mettre à jour un avis existant.
+   */
+  async updateReview(id: number, rating: number, comment: string): Promise<Review> {
+    const params = new URLSearchParams({
+      rating: rating.toString(),
+      comment: comment
+    });
 
-    async getAverageRating(placeId: number): Promise<{ average: number; count: number }> {
-        return apiRequest<{ average: number; count: number }>(`/reviews/place/${placeId}/average`)
-    },
-}
+    return apiRequest<Review>(`/reviews/${id}?${params.toString()}`, {
+      method: "PUT"
+    });
+  },
+
+  /**
+   * Supprimer un avis.
+   */
+  async deleteReview(id: number): Promise<void> {
+    return apiRequest<void>(`/reviews/${id}`, {
+      method: "DELETE"
+    });
+  }
+};

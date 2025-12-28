@@ -62,6 +62,7 @@ public Review createReview(Long userId, Long placeId, int rating, String comment
             return reviewRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Avis non trouvé"));
         }
+        
 
         public Review updateReview(Long userId, Long reviewId, int rating, String comment) {
             Review review = getReviewById(reviewId);
@@ -88,6 +89,11 @@ public Review createReview(Long userId, Long placeId, int rating, String comment
             }
 
             reviewRepository.delete(review);
+        }
+
+        @Transactional(readOnly = true)
+        public List<Review> getAllReviews() {
+            return reviewRepository.findAllByOrderByCreatedAtDesc();
         }
 
         @Transactional(readOnly = true)

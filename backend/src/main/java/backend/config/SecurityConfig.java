@@ -61,7 +61,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Connexion/Inscription
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/test-public").permitAll()
+                        .requestMatchers("/api/auth/me", "/api/auth/profile").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // Routes Admin
                         .requestMatchers("/api/guide/**").hasRole("GUIDE") // Routes Guide
                         .requestMatchers(HttpMethod.GET, "/api/activities/**", "/api/places/**").permitAll() // Routes publiques (non-authentifiées)

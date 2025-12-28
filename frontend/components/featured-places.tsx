@@ -5,17 +5,9 @@ import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { MapPin } from "lucide-react"
 import { placesService } from "@/services/places.service"
+import { Place } from "@/lib/types";
 
-// Type temporaire si votre lib/types.ts n'est pas correct
-interface Place {
-    id: number
-    name: string
-    description?: string
-    city?: string
-    imageUrl?: string
-    createdAt?: string
-    // Ajoutez d'autres champs selon votre backend
-}
+
 
 export default function FeaturedPlaces() {
     const [places, setPlaces] = useState<Place[]>([])
@@ -27,7 +19,7 @@ export default function FeaturedPlaces() {
             try {
                 setLoading(true)
                 // Récupérer tous les lieux depuis votre backend
-                const allPlaces = await placesService.getAllPlaces()
+                const allPlaces = await placesService.getAllActivePlaces()
                 console.log("Places reçues:", allPlaces) // Debug
 
                 // Prendre les 3 premiers (ou filtrer si vous voulez)
@@ -52,6 +44,19 @@ export default function FeaturedPlaces() {
 
         fetchPlaces()
     }, [])
+    if (loading) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {[1, 2, 3].map(i => (
+                    <Card key={i} className="animate-pulse h-[350px] bg-slate-100" />
+                ))}
+            </div>
+        )
+    }
+
+    if (error && places.length === 0) {
+        return <p className="text-center text-muted-foreground py-10">{error}</p>
+    }
 
     // Fonction pour obtenir une image selon le nom du lieu
     const getPlaceImage = (placeName: string): string => {
@@ -75,27 +80,27 @@ export default function FeaturedPlaces() {
 
     // Données de secours si l'API échoue - CORRIGÉES
     const getFallbackPlaces = (): Place[] => [
-        {
-            id: 1,
-            name: "Les Remparts de Taroudant",
-            description: "Murailles historiques du XVIe siècle entourant la vieille ville",
-            city: "Taroudant",
-            imageUrl: "https://images.unsplash.com/photo-1585506787138-60868c0b5d52?auto=format&fit=crop&w=800&h=400&q=80"
-        },
-        {
-            id: 2,
-            name: "Place Assarag",
-            description: "Place principale animée avec son marché traditionnel",
-            city: "Taroudant",
-            imageUrl: "https://images.unsplash.com/photo-1513611779871-47c8c05e7d3a?auto=format&fit=crop&w=800&h=400&q=80"
-        },
-        {
-            id: 3,
-            name: "Palais Claudio Bravo",
-            description: "Ancien palais transformé en musée et centre culturel",
-            city: "Taroudant",
-            imageUrl: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&h=400&q=80"
-        }
+        // {
+        //     id: 1,
+        //     name: "Les Remparts de Taroudant",
+        //     description: "Murailles historiques du XVIe siècle entourant la vieille ville",
+        //     city: "Taroudant",
+        //     imageUrl: "https://images.unsplash.com/photo-1585506787138-60868c0b5d52?auto=format&fit=crop&w=800&h=400&q=80"
+        // },
+        // {
+        //     id: 2,
+        //     name: "Place Assarag",
+        //     description: "Place principale animée avec son marché traditionnel",
+        //     city: "Taroudant",
+        //     imageUrl: "https://images.unsplash.com/photo-1513611779871-47c8c05e7d3a?auto=format&fit=crop&w=800&h=400&q=80"
+        // },
+        // {
+        //     id: 3,
+        //     name: "Palais Claudio Bravo",
+        //     description: "Ancien palais transformé en musée et centre culturel",
+        //     city: "Taroudant",
+        //     imageUrl: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&h=400&q=80"
+        // }
     ]
 
     if (loading) {

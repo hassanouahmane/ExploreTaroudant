@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -14,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast"
 import { activitiesService } from "@/services/activities.service"
 import { placesService } from "@/services/places.service"
-import type { Place } from "@/lib/types"
+import type { Place, Activity } from "@/lib/types"
 import { Loader2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
@@ -28,72 +27,60 @@ function CreateActivityContent() {
   })
   const [places, setPlaces] = useState<Place[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingPlaces, setIsLoadingPlaces] = useState(true)
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(true) // Ajouté pour gérer l'état du Select
   const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
-    const fetchPlaces = async () => {
-      try {
-        const data = await placesService.getAllPlaces()
-        setPlaces(data)
-      } catch (error) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les lieux",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoadingPlaces(false)
-      }
-    }
-
-    fetchPlaces()
+    placesService.getAllActivePlaces()
+      .then(setPlaces)
+      .catch(() => {
+        toast({ title: "Erreur", description: "Impossible de charger les lieux", variant: "destructive" })
+      })
+      .finally(() => setIsLoadingPlaces(false))
   }, [toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!formData.placeId) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un lieu",
-        variant: "destructive",
-      })
+      toast({ title: "Erreur", description: "Veuillez sélectionner un lieu", variant: "destructive" })
       return
     }
-
+    
     setIsLoading(true)
 
     try {
-      const guideId = Number.parseInt(localStorage.getItem("userId") || "0")
-
-      await activitiesService.createActivity({
+      // Construction de l'objet correspondant au type Activity (sans ID)
+      // On utilise Partial<Activity> ou on s'assure que le service accepte cet objet
+      const activityPayload: Omit<Activity, "id"> = {
         title: formData.title,
         description: formData.description,
-        price: Number.parseFloat(formData.price),
+        price: parseFloat(formData.price),
         duration: formData.duration,
-        placeId: Number.parseInt(formData.placeId),
-        guideId,
-      })
+        place: { id: parseInt(formData.placeId) },
+        // Le backend gère le status et le guide via le token
+      }
+
+      await activitiesService.createActivity(activityPayload as Activity)
 
       toast({
-        title: "Activité créée",
-        description: "Votre activité a été créée avec succès",
+        title: "Succès",
+        description: "L'activité a été créée et est en attente de validation." 
       })
 
       router.push("/dashboard/guide")
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Erreur",
-        description: "Impossible de créer l'activité",
-        variant: "destructive",
+        description: error.message || "Échec de la création",
+        variant: "destructive"
       })
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Le return est maintenant à l'intérieur de la fonction CreateActivityContent
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="mb-8">

@@ -139,4 +139,10 @@ public class ReservationService {
     public List<Reservation> getReservationsByCircuit(Long circuitId) {
         return reservationRepository.findByCircuitId(circuitId);
     }
+
+    // Récupérer toutes les réservations pour l'Admin
+public List<Reservation> getAllReservations() {
+    return reservationRepository.findAllByOrderByReservationDateDesc();
+}
+
 }

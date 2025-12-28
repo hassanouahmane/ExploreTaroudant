@@ -13,8 +13,9 @@ import { activitiesService } from "@/services/activities.service"
 import { reviewsService } from "@/services/reviews.service"
 import { authService } from "@/services/auth.service"
 import type { Place, Activity, Review } from "@/lib/types"
-import { MapPin, Clock, Loader2, Star } from "lucide-react"
+import { MapPin, Clock, Loader2, Star, } from "lucide-react"
 import Link from "next/link"
+import { Badge } from "@/components/ui/badge" // Ajout du composant UI manquant
 
 export default function PlaceDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -22,7 +23,6 @@ export default function PlaceDetailsPage({ params }: { params: Promise<{ id: str
   const [activities, setActivities] = useState<Activity[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
   const [averageRating, setAverageRating] = useState<number>(0)
-  const [reviewCount, setReviewCount] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showReviewForm, setShowReviewForm] = useState(false)
@@ -31,14 +31,13 @@ export default function PlaceDetailsPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     setIsAuthenticated(authService.isAuthenticated())
-  }, [])
-
-  useEffect(() => {
+    
     const fetchData = async () => {
       try {
         const placeId = Number.parseInt(resolvedParams.id)
-
-        const [placeData, activitiesData, reviewsData, ratingData] = await Promise.all([
+        
+        // Appels parallèles pour optimiser le temps de chargement
+        const [placeData, activitiesData, reviewsData, rating] = await Promise.all([
           placesService.getPlaceById(placeId),
           activitiesService.getActivitiesByPlace(placeId),
           reviewsService.getReviewsByPlace(placeId),
@@ -48,201 +47,108 @@ export default function PlaceDetailsPage({ params }: { params: Promise<{ id: str
         setPlace(placeData)
         setActivities(activitiesData)
         setReviews(reviewsData)
-        setAverageRating(ratingData.average)
-        setReviewCount(ratingData.count)
+        setAverageRating(rating) // Le backend renvoie un Double
       } catch (error) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les détails du lieu",
-          variant: "destructive",
-        })
+        toast({ title: "Erreur", description: "Lieu introuvable", variant: "destructive" })
       } finally {
         setIsLoading(false)
       }
     }
-
     fetchData()
   }, [resolvedParams.id, toast])
 
-  const handleReviewSuccess = async () => {
-    setShowReviewForm(false)
-
-    try {
-      const placeId = Number.parseInt(resolvedParams.id)
-      const [reviewsData, ratingData] = await Promise.all([
-        reviewsService.getReviewsByPlace(placeId),
-        reviewsService.getAverageRating(placeId),
-      ])
-
-      setReviews(reviewsData)
-      setAverageRating(ratingData.average)
-      setReviewCount(ratingData.count)
-    } catch (error) {
-      console.error("Failed to refresh reviews:", error)
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  if (!place) {
-    return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <p className="text-lg text-muted-foreground">Lieu non trouvé</p>
-      </div>
-    )
-  }
+  if (isLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-12 w-12 text-primary" /></div>
+  if (!place) return null
 
   return (
     <div className="pb-20">
-      {/* Hero Image */}
-      <div className="relative h-[400px] w-full">
+      {/* Hero dynamique avec image du Backend */}
+      <div className="relative h-[500px] w-full overflow-hidden">
         <img
-          src={place.imageUrl || `/placeholder.svg?height=400&width=1200&query=${place.name}+${place.city}`}
+          src={place.imageUrl || "/images/taroudant-hero.jpg"}
           alt={place.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-8 container mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">{place.name}</h1>
-          <p className="flex items-center gap-2 text-white/90 text-lg">
-            <MapPin className="h-5 w-5" />
-            {place.city}
-          </p>
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute bottom-0 left-0 right-0 p-12 container mx-auto text-white">
+          <Badge className="mb-4 bg-accent/80 hover:bg-accent">{place.city}</Badge>
+          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 drop-shadow-md">{place.name}</h1>
+          <div className="flex items-center gap-4 text-lg">
+             <Star className="fill-yellow-400 text-yellow-400" />
+             <span className="font-bold">{averageRating.toFixed(1)} / 5</span>
+             <span className="opacity-80">({reviews.length} avis)</span>
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Description */}
-            <Card>
-              <CardContent className="pt-6">
-                <h2 className="text-2xl font-bold mb-4">Description</h2>
-                <p className="text-muted-foreground leading-relaxed">{place.description}</p>
-              </CardContent>
-            </Card>
+      <div className="container mx-auto px-4 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="lg:col-span-2 space-y-12">
+          {/* Description stockée en TEXT */}
+          <section>
+            <h2 className="text-3xl font-bold mb-6 border-l-4 border-primary pl-4">Histoire et Culture</h2>
+            <p className="text-lg text-slate-600 leading-relaxed whitespace-pre-line">{place.description}</p>
+          </section>
 
-            {/* Activities */}
-            {activities.length > 0 && (
-              <Card>
-                <CardContent className="pt-6">
-                  <h2 className="text-2xl font-bold mb-4">Activités disponibles</h2>
-                  <div className="space-y-4">
-                    {activities.map((activity) => (
-                      <Link key={activity.id} href={`/activities/${activity.id}`}>
-                        <div className="flex items-start justify-between p-4 border border-border rounded-lg hover:border-primary transition-colors cursor-pointer">
-                          <div className="flex-1">
-                            <h3 className="font-semibold mb-1">{activity.title}</h3>
-                            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{activity.description}</p>
-                            <div className="flex items-center gap-4 text-sm">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                {activity.duration}
-                              </span>
-                              <span className="font-semibold text-primary">{activity.price} MAD</span>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Avis des visiteurs */}
+          <section className="bg-slate-50 p-8 rounded-3xl border">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold">Expériences des voyageurs</h2>
+              {isAuthenticated ? (
+                <Button onClick={() => setShowReviewForm(!showReviewForm)}>
+                  {showReviewForm ? "Fermer" : "Laisser un avis"}
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={() => router.push("/auth/login")}>Se connecter pour noter</Button>
+              )}
+            </div>
+
+            {showReviewForm && (
+               <div className="mb-10 animate-in fade-in slide-in-from-top-4">
+                  <ReviewForm 
+                    placeId={place.id} 
+                    placeName={place.name}
+                    onSuccess={() => {
+                        setShowReviewForm(false);
+                        router.refresh();
+                    }} 
+                  />
+               </div>
             )}
 
-            {/* Reviews Section */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-2">Avis</h2>
-                    {reviewCount > 0 && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`h-5 w-5 ${
-                                star <= Math.round(averageRating) ? "fill-accent text-accent" : "fill-muted text-muted"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-lg font-semibold">{averageRating.toFixed(1)}</span>
-                        <span className="text-muted-foreground">({reviewCount} avis)</span>
-                      </div>
-                    )}
-                  </div>
-                  {isAuthenticated && !showReviewForm && (
-                    <Button onClick={() => setShowReviewForm(true)}>Écrire un avis</Button>
-                  )}
-                  {!isAuthenticated && (
-                    <Button onClick={() => router.push("/auth/login")}>Connectez-vous pour donner votre avis</Button>
-                  )}
-                </div>
-
-                {/* Review Form */}
-                {showReviewForm && (
-                  <div className="mb-6">
-                    <ReviewForm placeId={place.id} placeName={place.name} onSuccess={handleReviewSuccess} />
-                    <Button variant="outline" onClick={() => setShowReviewForm(false)} className="w-full mt-4">
-                      Annuler
-                    </Button>
-                  </div>
-                )}
-
-                {/* Reviews List */}
-                {reviews.length > 0 ? (
-                  <div className="space-y-4">
-                    {reviews.map((review) => (
-                      <ReviewCard key={review.id} review={review} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-8">Aucun avis pour le moment</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Info Card */}
-            <Card>
-              <CardContent className="pt-6 space-y-4">
-                <h3 className="font-bold text-lg">Informations</h3>
-                <Separator />
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Ville</p>
-                  <p className="font-medium">{place.city}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Coordonnées</p>
-                  <p className="font-medium">
-                    {place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}
-                  </p>
-                </div>
-                {reviewCount > 0 && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Note moyenne</p>
-                    <div className="flex items-center gap-2">
-                      <Star className="h-5 w-5 fill-accent text-accent" />
-                      <span className="font-bold text-lg">{averageRating.toFixed(1)}</span>
-                      <span className="text-muted-foreground">/ 5</span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {reviews.map(review => <ReviewCard key={review.id} review={review} />)}
+              {reviews.length === 0 && <p className="col-span-full text-center py-10 text-muted-foreground italic">Soyez le premier à donner votre avis !</p>}
+            </div>
+          </section>
         </div>
+
+        {/* Sidebar avec Activités */}
+        <aside className="space-y-6">
+           <Card className="shadow-xl border-none bg-primary text-white">
+              <CardContent className="p-6">
+                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><MapPin /> Localisation</h3>
+                 <p className="opacity-90">{place.city}, Souss-Massa</p>
+                 <p className="text-xs mt-2 opacity-70">GPS: {place.latitude}, {place.longitude}</p>
+              </CardContent>
+           </Card>
+
+           <Card>
+              <CardContent className="p-6">
+                 <h3 className="text-xl font-bold mb-4">À faire sur place</h3>
+                 <div className="space-y-4">
+                    {activities.map(act => (
+                       <Link key={act.id} href={`/activities/${act.id}`} className="group block">
+                          <div className="p-3 border rounded-xl group-hover:border-primary group-hover:bg-primary/5 transition-all">
+                             <p className="font-semibold group-hover:text-primary">{act.title}</p>
+                             <p className="text-xs text-muted-foreground">{act.duration} • {act.price} MAD</p>
+                          </div>
+                       </Link>
+                    ))}
+                    {activities.length === 0 && <p className="text-sm text-muted-foreground italic text-center">Aucune activité pour le moment.</p>}
+                 </div>
+              </CardContent>
+           </Card>
+        </aside>
       </div>
     </div>
   )
