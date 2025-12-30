@@ -11,7 +11,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findAllByOrderByStartDateDesc();
     List<Event> findByEndDateAfterOrderByStartDateAsc(LocalDate date);
     List<Event> findByStatusAndEndDateAfterOrderByStartDateAsc(Status status, LocalDate date);
-    
+    List<Event> findByProposedByOrderByStartDateDesc(backend.entities.User user);
     // Admin : Tous par statut
     List<Event> findByStatus(Status status);
     

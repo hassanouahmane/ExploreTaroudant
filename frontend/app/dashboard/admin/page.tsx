@@ -172,6 +172,22 @@ export default function AdminDashboardPage() {
               </Button>
             </CardContent>
           </Card>
+          {/* Gestion de l'Agenda Culturel */}
+<Card className="shadow-sm ">
+  <CardHeader className="bg-pink-50/50">
+    <CardTitle className="flex items-center gap-2 text-sm text-pink-700">
+      <Calendar className="h-5 w-5" /> Événements
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="pt-6 space-y-4">
+    <p className="text-xs text-muted-foreground">
+      Validez les festivals et moussems proposés par les guides.
+    </p>
+    <Button asChild className="w-full border-pink-200 text-pink-700 hover:bg-pink-50" variant="outline" size="sm">
+      <Link href="/dashboard/admin/events">Gérer l'agenda</Link>
+    </Button>
+  </CardContent>
+</Card>
 
           <Card className="shadow-sm">
             <CardHeader className="bg-muted/30">

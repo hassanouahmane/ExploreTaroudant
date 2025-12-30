@@ -8,46 +8,46 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  // 1. Récupération sécurisée du token 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
- //  On définit les headers comme un objet simple indexable
   const headers: Record<string, string> = {
     ...Object.fromEntries(new Headers(options.headers).entries()),
   };
 
-  // 2. On ajoute le Content-Type si ce n'est pas du FormData (images)
   if (!(options.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
 
-  // 3. On ajoute l'Authorization (plus d'erreur TypeScript ici)
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers, // TypeScript accepte Record<string, string> ici car il est compatible avec HeadersInit
+    headers,
   });
 
-  // 5. Gestion des erreurs centralisée
+  // --- CORRECTION MAJEURE ICI ---
+  // On récupère le texte brut une seule fois
+  const rawText = await response.text();
+  
+  // On essaie de parser le JSON si le texte n'est pas vide
+  let data: any = null;
+  try {
+    data = rawText ? JSON.parse(rawText) : null;
+  } catch (e) {
+    data = rawText; // Si ce n'est pas du JSON, on garde le texte brut
+  }
+
   if (!response.ok) {
-    let errorMessage = "Une erreur est survenue";
-    try {
-      // On essaie de lire le message d'erreur envoyé par  backend 
-      const errorData = await response.json();
-      errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
-    } catch {
-      errorMessage = await response.text() || response.statusText;
-    }
+    // Si la réponse est une erreur, on utilise les données déjà extraites
+    const errorMessage = data?.error || data?.message || (typeof data === 'string' ? data : response.statusText);
     throw new ApiError(response.status, errorMessage);
   }
 
-  // 6. Gestion des réponses vides (No Content 204)
-  if (response.status === 204) {
+  if (response.status === 204 || !data) {
     return {} as T;
   }
 
-  return response.json();
+  return data as T;
 }

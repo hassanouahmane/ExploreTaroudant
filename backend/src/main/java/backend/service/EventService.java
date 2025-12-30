@@ -52,6 +52,7 @@ public class EventService {
         return eventRepository.save(event);
     }
 
+  
     @Transactional
     public Event updateEvent(Long id, Event eventDetails) {
         Event event = getEventById(id);
@@ -64,7 +65,10 @@ public class EventService {
 
         return eventRepository.save(event);
     }
-
+      public List<Event> getEventsByProposer(User user) {
+    // On récupère les événements proposés par cet utilisateur spécifique
+    return eventRepository.findByProposedByOrderByStartDateDesc(user);
+}
     @Transactional
     public void deleteEvent(Long id) {
         Event event = getEventById(id);

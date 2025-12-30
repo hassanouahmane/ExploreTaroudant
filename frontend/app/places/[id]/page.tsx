@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -13,9 +14,9 @@ import { activitiesService } from "@/services/activities.service"
 import { reviewsService } from "@/services/reviews.service"
 import { authService } from "@/services/auth.service"
 import type { Place, Activity, Review } from "@/lib/types"
-import { MapPin, Clock, Loader2, Star, } from "lucide-react"
+import { MapPin, Clock, Loader2, Star, Activity as ActivityIcon, ArrowLeft, History, Info, Landmark } from "lucide-react"
 import Link from "next/link"
-import { Badge } from "@/components/ui/badge" // Ajout du composant UI manquant
+import { Badge } from "@/components/ui/badge"
 
 export default function PlaceDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -35,8 +36,8 @@ export default function PlaceDetailsPage({ params }: { params: Promise<{ id: str
     const fetchData = async () => {
       try {
         const placeId = Number.parseInt(resolvedParams.id)
-        
-        // Appels parallèles pour optimiser le temps de chargement
+        if (isNaN(placeId)) return;
+
         const [placeData, activitiesData, reviewsData, rating] = await Promise.all([
           placesService.getPlaceById(placeId),
           activitiesService.getActivitiesByPlace(placeId),
@@ -47,107 +48,189 @@ export default function PlaceDetailsPage({ params }: { params: Promise<{ id: str
         setPlace(placeData)
         setActivities(activitiesData)
         setReviews(reviewsData)
-        setAverageRating(rating) // Le backend renvoie un Double
+        
+        // Sécurisation du rating (force number)
+        const numericRating = typeof rating === 'number' ? rating : parseFloat(rating as any) || 0
+        setAverageRating(numericRating)
+
       } catch (error) {
-        toast({ title: "Erreur", description: "Lieu introuvable", variant: "destructive" })
+        console.error("Fetch error:", error)
       } finally {
         setIsLoading(false)
       }
     }
-    fetchData()
-  }, [resolvedParams.id, toast])
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin h-12 w-12 text-primary" /></div>
+    fetchData()
+    // On ne met QUE l'ID ici pour éviter l'erreur de "changed size" liée à l'objet toast
+  }, [resolvedParams.id]); 
+
+  if (isLoading) return (
+    <div className="flex flex-col h-screen items-center justify-center gap-4 bg-slate-50">
+      <Loader2 className="animate-spin h-12 w-12 text-emerald-600" />
+      <p className="text-slate-500 animate-pulse font-medium text-xs uppercase tracking-widest text-center">
+        Immersion dans l'histoire de Taroudant...
+      </p>
+    </div>
+  )
+  
   if (!place) return null
 
+  const formattedRating = (Number(averageRating) || 0).toFixed(1)
+
   return (
-    <div className="pb-20">
-      {/* Hero dynamique avec image du Backend */}
-      <div className="relative h-[500px] w-full overflow-hidden">
-        <img
+    <div className="pb-24 bg-white">
+      {/* Bouton Retour Flottant */}
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="fixed top-28 left-8 z-30">
+         <Button variant="outline" size="icon" className="rounded-full bg-white/90 backdrop-blur shadow-xl border-none hover:scale-110 transition-transform" onClick={() => router.back()}>
+            <ArrowLeft className="text-slate-900" />
+         </Button>
+      </motion.div>
+
+      {/* Hero Header */}
+      <div className="relative h-[70vh] w-full overflow-hidden">
+        <motion.img
+          initial={{ scale: 1.2 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 2, ease: "easeOut" }}
           src={place.imageUrl || "/images/taroudant-hero.jpg"}
           alt={place.name}
-          className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
+          className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="absolute bottom-0 left-0 right-0 p-12 container mx-auto text-white">
-          <Badge className="mb-4 bg-accent/80 hover:bg-accent">{place.city}</Badge>
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 drop-shadow-md">{place.name}</h1>
-          <div className="flex items-center gap-4 text-lg">
-             <Star className="fill-yellow-400 text-yellow-400" />
-             <span className="font-bold">{averageRating.toFixed(1)} / 5</span>
-             <span className="opacity-80">({reviews.length} avis)</span>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-12">
+          <div className="container mx-auto">
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+              <Badge className="mb-6 bg-emerald-500 text-white border-none px-6 py-2 text-sm font-bold rounded-full shadow-lg">
+                {place.city}
+              </Badge>
+              <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tighter drop-shadow-2xl">
+                {place.name}
+              </h1>
+              <div className="flex items-center gap-6 text-white bg-white/10 backdrop-blur-md w-fit p-4 rounded-3xl border border-white/20 shadow-2xl">
+                 <div className="flex items-center gap-2">
+                    <Star className="fill-amber-400 text-amber-400 h-6 w-6" />
+                    <span className="text-2xl font-black">{formattedRating}</span>
+                 </div>
+                 <Separator orientation="vertical" className="h-8 bg-white/30" />
+                 <span className="font-medium opacity-90">{reviews.length} témoignages</span>
+              </div>
+            </motion.div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
-        <div className="lg:col-span-2 space-y-12">
-          {/* Description stockée en TEXT */}
+      <div className="container mx-auto px-4 mt-16 grid grid-cols-1 lg:grid-cols-3 gap-16">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-16">
           <section>
-            <h2 className="text-3xl font-bold mb-6 border-l-4 border-primary pl-4">Histoire et Culture</h2>
-            <p className="text-lg text-slate-600 leading-relaxed whitespace-pre-line">{place.description}</p>
+            <div className="flex items-center gap-3 mb-8 text-emerald-700">
+               <History size={32} />
+               <h2 className="text-4xl font-black tracking-tight text-slate-900 italic">L'épopée de Taroudant</h2>
+            </div>
+            <p className="text-xl text-slate-600 leading-relaxed font-medium whitespace-pre-line bg-slate-50 p-10 rounded-[3rem] border border-slate-100 shadow-inner italic">
+                "{place.description}"
+            </p>
           </section>
 
           {/* Avis des visiteurs */}
-          <section className="bg-slate-50 p-8 rounded-3xl border">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold">Expériences des voyageurs</h2>
-              {isAuthenticated ? (
-                <Button onClick={() => setShowReviewForm(!showReviewForm)}>
-                  {showReviewForm ? "Fermer" : "Laisser un avis"}
-                </Button>
-              ) : (
-                <Button variant="outline" onClick={() => router.push("/auth/login")}>Se connecter pour noter</Button>
-              )}
+          <section className="bg-slate-950 text-white p-12 rounded-[4rem] shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 opacity-5">
+               <Landmark size={300} />
             </div>
+            
+            <div className="relative z-10">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+                <div>
+                  <h2 className="text-3xl font-black mb-2 tracking-tight">Expériences Voyageurs</h2>
+                  <p className="text-slate-400 font-medium text-sm uppercase tracking-widest">Partagez votre histoire</p>
+                </div>
+                {isAuthenticated ? (
+                  <Button 
+                    onClick={() => setShowReviewForm(!showReviewForm)} 
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-8 h-14 font-bold transition-all active:scale-95"
+                  >
+                    {showReviewForm ? "Fermer" : "Rédiger un avis"}
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="border-white/20 text-white rounded-full h-14 px-8" onClick={() => router.push("/auth/login")}>
+                    Connectez-vous pour noter
+                  </Button>
+                )}
+              </div>
 
-            {showReviewForm && (
-               <div className="mb-10 animate-in fade-in slide-in-from-top-4">
+              <AnimatePresence>
+                {showReviewForm && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-12 bg-white rounded-[2.5rem] p-8 text-slate-900 shadow-2xl overflow-hidden">
+                    {/* CORRECTION : On s'assure de passer place.id (nombre) et non resolvedParams (objet) */}
                   <ReviewForm 
-                    placeId={place.id} 
-                    placeName={place.name}
-                    onSuccess={() => {
-                        setShowReviewForm(false);
-                        router.refresh();
-                    }} 
-                  />
-               </div>
-            )}
+  placeId={Number(place.id)} // FORCEZ LE PASSAGE DE L'ID NUMÉRIQUE ICI
+  placeName={place.name} 
+  onSuccess={() => {
+    setShowReviewForm(false);
+    router.refresh(); // Rafraîchit les données sans recharger toute la page
+  }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {reviews.map(review => <ReviewCard key={review.id} review={review} />)}
-              {reviews.length === 0 && <p className="col-span-full text-center py-10 text-muted-foreground italic">Soyez le premier à donner votre avis !</p>}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {reviews.map(review => <ReviewCard key={review.id} review={review} />)}
+                {reviews.length === 0 && (
+                  <p className="col-span-full text-center py-20 text-slate-500 italic text-lg border-2 border-dashed border-slate-800 rounded-[3rem]">
+                    Soyez le premier à explorer et noter ce lieu !
+                  </p>
+                )}
+              </div>
             </div>
           </section>
         </div>
 
-        {/* Sidebar avec Activités */}
-        <aside className="space-y-6">
-           <Card className="shadow-xl border-none bg-primary text-white">
-              <CardContent className="p-6">
-                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><MapPin /> Localisation</h3>
-                 <p className="opacity-90">{place.city}, Souss-Massa</p>
-                 <p className="text-xs mt-2 opacity-70">GPS: {place.latitude}, {place.longitude}</p>
-              </CardContent>
-           </Card>
+        {/* Sidebar */}
+        <aside className="space-y-8">
+          <Card className="shadow-2xl border-none bg-gradient-to-br from-emerald-900 to-slate-950 text-white rounded-[3rem] overflow-hidden">
+            <CardContent className="p-10">
+              <div className="h-16 w-16 bg-emerald-400/20 rounded-[1.5rem] flex items-center justify-center mb-8">
+                <MapPin className="text-emerald-400 h-8 w-8 animate-bounce" />
+              </div>
+              <h3 className="text-2xl font-black mb-2 tracking-tight text-white">Coordonnées</h3>
+              <p className="text-slate-400 font-medium mb-8 leading-relaxed">Province de {place.city}, Souss-Massa.</p>
+              <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4">
+                <p className="text-[10px] text-emerald-400 font-black uppercase tracking-[0.2em]">Données Satellite</p>
+                <div className="font-mono text-sm space-y-2 opacity-80">
+                  <p>LAT: {place.latitude}</p>
+                  <p>LNG: {place.longitude}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-           <Card>
-              <CardContent className="p-6">
-                 <h3 className="text-xl font-bold mb-4">À faire sur place</h3>
-                 <div className="space-y-4">
-                    {activities.map(act => (
-                       <Link key={act.id} href={`/activities/${act.id}`} className="group block">
-                          <div className="p-3 border rounded-xl group-hover:border-primary group-hover:bg-primary/5 transition-all">
-                             <p className="font-semibold group-hover:text-primary">{act.title}</p>
-                             <p className="text-xs text-muted-foreground">{act.duration} • {act.price} MAD</p>
-                          </div>
-                       </Link>
-                    ))}
-                    {activities.length === 0 && <p className="text-sm text-muted-foreground italic text-center">Aucune activité pour le moment.</p>}
-                 </div>
-              </CardContent>
-           </Card>
+          <Card className="rounded-[3rem] shadow-xl border-slate-100 bg-white sticky top-28">
+            <CardContent className="p-8">
+              <h3 className="text-2xl font-black mb-8 flex items-center gap-3 text-slate-900 tracking-tight">
+                <ActivityIcon className="text-emerald-600" size={24} /> À vivre ici
+              </h3>
+              <div className="space-y-6">
+                {activities.length > 0 ? (
+                  activities.map(act => (
+                    <Link key={act.id} href={`/activities/${act.id}`} className="group block">
+                      <div className="p-6 border border-slate-100 rounded-[2rem] group-hover:border-emerald-500 group-hover:bg-emerald-50/30 transition-all duration-500">
+                        <p className="font-black text-slate-800 group-hover:text-emerald-900 text-lg leading-tight mb-3">{act.title}</p>
+                        <div className="flex justify-between items-center">
+                          <Badge variant="secondary" className="px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+                            <Clock size={12} className="mr-1" /> {act.duration}
+                          </Badge>
+                          <span className="text-xl font-black text-emerald-600">{act.price} MAD</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-slate-400 italic text-sm text-center py-6">Aucune activité prévue.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </aside>
       </div>
     </div>

@@ -60,6 +60,14 @@ export const guideService = {
       body: JSON.stringify(data),
     })
   },
+  async updateGuideTechnicalInfo(data: { bio: string, languages: string }): Promise<any> {
+  return apiRequest<any>("/guide/profile/technical", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+},
+  
+  
 
   /**
    * Supprime un circuit appartenant au guide.

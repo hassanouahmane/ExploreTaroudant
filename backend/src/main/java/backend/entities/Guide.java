@@ -1,5 +1,7 @@
 package backend.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import backend.entities.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -22,7 +24,8 @@ public class Guide {
     private Long id;
 
     @OneToOne
-    @JoinColumn(name="user_id")
+    @JoinColumn(name = "user_id")
+    @JsonBackReference // Dit : "Stop, n'affiche pas le user ici pour éviter la boucle"
     private User user;
 
     @Column(columnDefinition = "TEXT")

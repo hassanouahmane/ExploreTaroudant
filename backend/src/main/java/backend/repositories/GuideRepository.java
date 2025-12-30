@@ -8,7 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import backend.entities.User;
 
-public interface GuideRepository extends JpaRepository<Guide,Integer> {
+public interface GuideRepository extends JpaRepository<Guide,Long> {
 
 Optional<Guide> findByUser(User user);
+Optional<Guide> findByUserId(Long userId);
 }

@@ -16,30 +16,28 @@ export const reservationsService = {
     });
   },
 
+  // --- GUIDE ---
+  async getGuideReservations(): Promise<Reservation[]> {
+    return apiRequest<Reservation[]>("/tourist/reservations/guide/my-bookings", {
+      method: "GET",
+    });
+  },
+
+  // --- ADMIN (C'EST ICI QU'IL MANQUAIT LA FONCTION) ---
+  async getAllReservationsAdmin(): Promise<Reservation[]> {
+    return apiRequest<Reservation[]>("/tourist/reservations/all", {
+      method: "GET",
+    });
+  },
+
+  // --- ACTIONS COMMUNES ---
   async cancelReservation(id: number): Promise<void> {
     return apiRequest<void>(`/tourist/reservations/${id}`, {
       method: "DELETE",
     });
   },
 
-  // --- ADMIN ---
-  async getAllReservationsAdmin(): Promise<Reservation[]> {
-    return apiRequest<Reservation[]>("/tourist/reservations/all", {
-      method: "GET",
-    });
-  },
   async updateStatus(id: number, status: string): Promise<Reservation> {
-  return apiRequest<Reservation>(`/tourist/reservations/${id}/status?status=${status}`, {
-    method: "PUT",
-  });
-},
-
-/**
- * Admin : Récupérer toutes les réservations du système
- */
-
-
-  async updateReservationStatus(id: number, status: string): Promise<Reservation> {
     return apiRequest<Reservation>(`/tourist/reservations/${id}/status?status=${status}`, {
       method: "PUT",
     });

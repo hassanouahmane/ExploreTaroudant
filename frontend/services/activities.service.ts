@@ -20,6 +20,10 @@ export const activitiesService = {
   async getActivitiesByGuide(guideId: number): Promise<Activity[]> {
     return apiRequest<Activity[]>(`/activities/guide/${guideId}`)
   },
+  // activities.service.ts
+async getMyActivities(): Promise<Activity[]> {
+    return apiRequest<Activity[]>("/activities/my-activities");
+},
 
   // --- ROUTES GUIDES & ADMIN ---
 

@@ -43,6 +43,14 @@ public class ReservationController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/guide/my-bookings")
+@PreAuthorize("hasRole('GUIDE')")
+public ResponseEntity<List<Reservation>> getReservationsForMyContent(
+        @AuthenticationPrincipal User currentUser) {
+    // Cette méthode doit filtrer les réservations dont l'activité ou le circuit appartient au guide
+    return ResponseEntity.ok(reservationService.getReservationsForGuide(currentUser.getId()));
+}
+
     // --- PARTIE ADMIN ---
 
     @GetMapping("/all")

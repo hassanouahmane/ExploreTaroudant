@@ -12,5 +12,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByPlaceId(Long placeId);
     List<Activity> findByGuideId(Long guideId);
     List<Activity> findByStatus(Status status);
+    List<Activity> findByGuideUserId(Long userId);
     List<Activity> findByPlaceIdAndStatus(Long placeId, Status status);
 }

@@ -1,12 +1,7 @@
 package backend.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import backend.entities.Guide;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class AuthResponse {
     private String token;
     private String type = "Bearer";
@@ -14,7 +9,13 @@ public class AuthResponse {
     private String fullName;
     private String email;
     private String role;
+    
+    // Nouveau champ pour le Guide
+    private Guide guide;
 
+    // --- CONSTRUCTEURS ---
+
+    // 1. Constructeur SANS Guide (Pour Tourist et Admin)
     public AuthResponse(String token, Long id, String fullName, String email, String role) {
         this.token = token;
         this.id = id;
@@ -22,6 +23,18 @@ public class AuthResponse {
         this.email = email;
         this.role = role;
     }
+
+    // 2. Constructeur AVEC Guide (Pour les Guides)
+    public AuthResponse(String token, Long id, String fullName, String email, String role, Guide guide) {
+        this.token = token;
+        this.id = id;
+        this.fullName = fullName;
+        this.email = email;
+        this.role = role;
+        this.guide = guide;
+    }
+
+    // --- GETTERS ET SETTERS ---
 
     public String getToken() {
         return token;
@@ -71,5 +84,11 @@ public class AuthResponse {
         this.role = role;
     }
 
-    
+    public Guide getGuide() {
+        return guide;
+    }
+
+    public void setGuide(Guide guide) {
+        this.guide = guide;
+    }
 }

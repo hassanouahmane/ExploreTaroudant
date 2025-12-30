@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Menu, X, User, LogOut } from "lucide-react"
+import { Menu, X, User, LogOut, Settings } from "lucide-react" // J'ai ajouté Settings pour l'icône profil
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -30,7 +30,6 @@ export function Header() {
 
     checkAuth()
 
-    // Listen for storage changes (login/logout in other tabs)
     window.addEventListener("storage", checkAuth)
     return () => window.removeEventListener("storage", checkAuth)
   }, [])
@@ -38,14 +37,22 @@ export function Header() {
   const handleLogout = () => {
     authService.logout()
     setIsAuthenticated(false)
-    router.push("/")
+    router.push("/auth/login")
     router.refresh()
   }
 
+  // Fonction pour le Dashboard principal
   const getDashboardLink = () => {
     if (userRole === "ADMIN") return "/dashboard/admin"
     if (userRole === "GUIDE") return "/dashboard/guide"
-    return "/dashboard/tourist"
+    return "/"
+  }
+
+  // NOUVELLE FONCTION : Détermine le lien du profil selon le rôle
+  const getProfileLink = () => {
+    if (userRole === "ADMIN") return "/dashboard/admin/profile"
+    if (userRole === "GUIDE") return "/dashboard/guide/profile"
+    return "/dashboard/tourist/profile"
   }
 
   return (
@@ -85,18 +92,38 @@ export function Header() {
                     {userName}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem asChild>
-                    <Link href={getDashboardLink()}>Dashboard</Link>
+                <DropdownMenuContent align="end" className="w-56">
+                  
+                  {/* Lien Dashboard */}
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href={getDashboardLink()} className="w-full font-medium">
+                      Dashboard
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/tourist/reservations">Mes Réservations</Link>
+
+                  {/* AJOUT ICI : Lien vers le Profil */}
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href={getProfileLink()} className="w-full flex items-center">
+                       <Settings className="mr-2 h-4 w-4" /> 
+                       Mon Profil
+                    </Link>
                   </DropdownMenuItem>
+
+                  {/* Lien Réservations (Visible uniquement pour les touristes, optionnel) */}
+                  {userRole === "TOURIST" && (
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link href="/dashboard/tourist/reservations">Mes Réservations</Link>
+                    </DropdownMenuItem>
+                  )}
+
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  
+                  {/* Déconnexion */}
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer focus:text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />
                     Se déconnecter
                   </DropdownMenuItem>
+
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -128,36 +155,27 @@ export function Header() {
               >
                 Accueil
               </Link>
-              <Link
-                href="/places"
-                className="text-foreground hover:text-primary transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Lieux
-              </Link>
-              <Link
-                href="/activities"
-                className="text-foreground hover:text-primary transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Activités
-              </Link>
-              <Link
-                href="/events"
-                className="text-foreground hover:text-primary transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Événements
-              </Link>
+              {/* ... Autres liens ... */}
+              
               {isAuthenticated ? (
                 <>
                   <Link
                     href={getDashboardLink()}
-                    className="text-foreground hover:text-primary transition-colors"
+                    className="text-foreground hover:text-primary transition-colors font-semibold"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Dashboard
                   </Link>
+
+                  {/* AJOUT MOBILE : Lien Profil */}
+                  <Link
+                    href={getProfileLink()}
+                    className="text-foreground hover:text-primary transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Mon Profil
+                  </Link>
+
                   <button
                     onClick={() => {
                       handleLogout()
@@ -170,20 +188,8 @@ export function Header() {
                 </>
               ) : (
                 <>
-                  <Link
-                    href="/auth/login"
-                    className="text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Connexion
-                  </Link>
-                  <Link
-                    href="/auth/register"
-                    className="text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Inscription
-                  </Link>
+                  <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>Connexion</Link>
+                  <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>Inscription</Link>
                 </>
               )}
             </nav>

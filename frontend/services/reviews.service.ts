@@ -5,18 +5,34 @@ export const reviewsService = {
   
   
     //Créer un nouvel avis pour un lieu. 
-  async createReview(placeId: number, rating: number, comment: string): Promise<Review> {
-    const params = new URLSearchParams({
-      placeId: placeId.toString(),
-      rating: rating.toString(),
-      comment: comment
-    });
+  // services/reviews.service.ts
+// services/reviews.service.ts
 
-    return apiRequest<Review>(`/reviews?${params.toString()}`, {
-      method: "POST"
-    });
+async createReview(placeId: number, rating: number, comment: string): Promise<Review> {
+  const params = new URLSearchParams();
+  params.append("placeId", String(placeId));
+  params.append("rating", String(rating));
+  params.append("comment", comment.trim());
+
+  return apiRequest<Review>(`/reviews?${params.toString()}`, {
+    method: "POST"
+  });
+},
+  async getReviewsByPlace(placeId: number): Promise<Review[]> {
+    return apiRequest<Review[]>(`/reviews/place/${placeId}`);
   },
 
+  async getAverageRating(placeId: number): Promise<number> {
+    return apiRequest<number>(`/reviews/place/${placeId}/average`);
+  },
+
+async updateReview(id: number, rating: number, comment: string): Promise<Review> {
+  const query = `rating=${rating}&comment=${encodeURIComponent(comment)}`;
+  
+  return apiRequest<Review>(`/reviews/${id}?${query}`, {
+    method: "PUT"
+  });
+},
   // Admin: Récupérer tous les avis.
 async getAllReviewsAdmin(): Promise<Review[]> {
   return apiRequest<Review[]>("/reviews/all", { 
@@ -24,22 +40,7 @@ async getAllReviewsAdmin(): Promise<Review[]> {
   });
 },
   
-    //Récupérer tous les avis d'un lieu spécifique.
-   
-  async getReviewsByPlace(placeId: number): Promise<Review[]> {
-    return apiRequest<Review[]>(`/reviews/place/${placeId}`, {
-      method: "GET"
-    });
-  },
-
-  
-   // Récupérer la note moyenne d'un lieu.
-   
-  async getAverageRating(placeId: number): Promise<number> {
-    return apiRequest<number>(`/reviews/place/${placeId}/average`, {
-      method: "GET"
-    });
-  },
+    //Récupérer tous les avis d'un lieu spécifiq
 
   
   //  Récupérer les avis d'un utilisateur spécifique.
@@ -53,16 +54,9 @@ async getAllReviewsAdmin(): Promise<Review[]> {
   /**
    * Mettre à jour un avis existant.
    */
-  async updateReview(id: number, rating: number, comment: string): Promise<Review> {
-    const params = new URLSearchParams({
-      rating: rating.toString(),
-      comment: comment
-    });
+  
 
-    return apiRequest<Review>(`/reviews/${id}?${params.toString()}`, {
-      method: "PUT"
-    });
-  },
+   
 
   /**
    * Supprimer un avis.

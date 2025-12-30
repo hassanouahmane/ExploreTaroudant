@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
+import backend.repositories.GuideRepository;
 
 @Service
 //@RequiredArgsConstructor
@@ -17,12 +18,13 @@ public class ReservationService {
     private final ActivityRepository activityRepository;
     private final CircuitRepository circuitRepository;
     private final UserRepository userRepository;
-    
-    public ReservationService(ReservationRepository reservationRepository, ActivityRepository activityRepository, CircuitRepository circuitRepository, UserRepository userRepository) {
+    private final GuideRepository guideRepository;
+    public ReservationService(ReservationRepository reservationRepository, ActivityRepository activityRepository, CircuitRepository circuitRepository, UserRepository userRepository, GuideRepository guideRepository) {
         this.reservationRepository = reservationRepository;
         this.activityRepository = activityRepository;
         this.circuitRepository = circuitRepository;
         this.userRepository = userRepository;
+        this.guideRepository = guideRepository;
     }
     public Reservation createReservation(Long userId, Reservation reservationRequest) {
         User user = userRepository.findById(userId)
@@ -143,6 +145,15 @@ public class ReservationService {
     // Récupérer toutes les réservations pour l'Admin
 public List<Reservation> getAllReservations() {
     return reservationRepository.findAllByOrderByReservationDateDesc();
+}
+
+public List<Reservation> getReservationsForGuide(Long userId) {
+    // On récupère le profil guide de l'utilisateur connecté
+    Guide guide = guideRepository.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("Profil Guide non trouvé"));
+            
+    // On cherche toutes les réservations liées à ce guide (via activité ou circuit)
+    return reservationRepository.findAllByActivityGuideOrCircuitGuideOrderByReservationDateDesc(guide, guide);
 }
 
 }

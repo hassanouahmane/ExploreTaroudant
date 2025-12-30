@@ -4,6 +4,7 @@ import backend.entities.Reservation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import backend.entities.Guide;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
@@ -12,4 +13,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findByActivityId(Long activityId);
     List<Reservation> findByCircuitId(Long circuitId);
     List<Reservation> findAllByOrderByReservationDateDesc();
+    List<Reservation> findAllByActivityGuideOrCircuitGuideOrderByReservationDateDesc(Guide guide, Guide guide2);
+
 }

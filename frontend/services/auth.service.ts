@@ -2,6 +2,7 @@ import { apiRequest } from "@/lib/api-client"
 import type { User, AuthResponse } from "@/lib/types"
 
 export const authService = {
+  // --- INSCRIPTION ---
   async register(data: {
     fullName: string
     email: string
@@ -15,6 +16,7 @@ export const authService = {
     })
   },
 
+  // --- CONNEXION ---
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
       const response = await apiRequest<AuthResponse>("/auth/login", {
@@ -28,20 +30,35 @@ export const authService = {
       
       return response;
     } catch (error: any) {
-      // Gestion des erreurs personnalisée selon vos messages Backend
-      if (error.message.includes("suspendu") || error.message.includes("locked")) {
+      if (error.message && (error.message.includes("suspendu") || error.message.includes("locked"))) {
         throw new Error("Compte non activé. Veuillez contacter l'admin.");
       }
       throw error;
     }
   },
 
-  async getCurrentUser(userId: string): Promise<User> {
-    // Note: Dans votre backend, c'est /api/auth/current-user ou similaire
-    return apiRequest<User>(`/auth/users/me`)
+  // --- UTILISATEUR COURANT ---
+  async getCurrentUser(): Promise<User> {
+    return apiRequest<User>(`/auth/me`)
   },
 
-  // Stockage des données après succès
+  // --- MISE À JOUR PROFIL ---
+  // Accepte les champs communs + password + champs spécifiques aux guides
+  async updateProfile(data: { 
+    fullName?: string; 
+    phone?: string; 
+    password?: string; 
+    email?: string;
+    bio?: string;       // Pour le Guide
+    languages?: string; // Pour le Guide
+  }): Promise<User> {
+    return apiRequest<User>("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
+  },
+
+  // --- GESTION DU STOCKAGE LOCAL ---
   saveAuthData(data: AuthResponse) {
     if (typeof window !== "undefined" && data.token) {
       localStorage.setItem("token", data.token)
@@ -51,14 +68,16 @@ export const authService = {
     }
   },
 
+  // --- DÉCONNEXION ---
   logout() {
     if (typeof window !== "undefined") {
-      localStorage.clear(); // Plus propre pour tout vider
-      window.location.href = "/login"; // Redirection forcée
+      localStorage.clear(); 
+      // Correction : Ajout du "/" au début pour une redirection absolue
+      window.location.href = "/auth/login"; 
     }
   },
 
-  // Helpers utiles pour les interfaces Next.js
+  // --- HELPERS (Rôles) ---
   isAdmin(): boolean {
     return this.getUserRole() === "ADMIN";
   },
@@ -71,6 +90,7 @@ export const authService = {
     if (typeof window === "undefined") return null
     return localStorage.getItem("userRole")
   },
+
   isAuthenticated(): boolean {
     if (typeof window === "undefined") return false;
     return !!localStorage.getItem("token");

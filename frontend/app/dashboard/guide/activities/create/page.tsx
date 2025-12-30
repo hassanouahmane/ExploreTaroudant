@@ -1,206 +1,130 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ProtectedRoute } from "@/components/protected-route"
+import { activitiesService } from "@/services/activities.service"
+import { placesService } from "@/services/places.service"
+import { useToast } from "@/hooks/use-toast"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
-import { activitiesService } from "@/services/activities.service"
-import { placesService } from "@/services/places.service"
-import type { Place, Activity } from "@/lib/types"
-import { Loader2, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2, Activity as ActivityIcon } from "lucide-react"
 import Link from "next/link"
+import type { Place } from "@/lib/types"
 
-function CreateActivityContent() {
+export default function GuideCreateActivityPage() {
+  const [loading, setLoading] = useState(false)
+  const [places, setPlaces] = useState<Place[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     price: "",
     duration: "",
-    placeId: "",
+    placeId: ""
   })
-  const [places, setPlaces] = useState<Place[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingPlaces, setIsLoadingPlaces] = useState(true) // Ajouté pour gérer l'état du Select
+  
   const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
-    placesService.getAllActivePlaces()
-      .then(setPlaces)
-      .catch(() => {
-        toast({ title: "Erreur", description: "Impossible de charger les lieux", variant: "destructive" })
-      })
-      .finally(() => setIsLoadingPlaces(false))
-  }, [toast])
+    placesService.getAllActivePlaces().then(setPlaces)
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.placeId) {
-      toast({ title: "Erreur", description: "Veuillez sélectionner un lieu", variant: "destructive" })
-      return
-    }
-    
-    setIsLoading(true)
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      // Construction de l'objet correspondant au type Activity (sans ID)
-      // On utilise Partial<Activity> ou on s'assure que le service accepte cet objet
-      const activityPayload: Omit<Activity, "id"> = {
-        title: formData.title,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        duration: formData.duration,
-        place: { id: parseInt(formData.placeId) },
-        // Le backend gère le status et le guide via le token
+  try {
+    const activityData = {
+      title: formData.title,
+      description: formData.description,
+      // Conversion propre pour BigDecimal
+      price: Number(formData.price), 
+      duration: formData.duration,
+      // On n'envoie que l'ID minimal
+      place: { 
+        id: parseInt(formData.placeId) 
       }
+    };
 
-      await activitiesService.createActivity(activityPayload as Activity)
+    console.log("Envoi activité :", activityData);
 
-      toast({
-        title: "Succès",
-        description: "L'activité a été créée et est en attente de validation." 
-      })
-
-      router.push("/dashboard/guide")
-    } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message || "Échec de la création",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    await activitiesService.createActivity(activityData as any);
+    
+    toast({ title: "Succès", description: "Activité créée et en attente de validation." });
+    router.push("/dashboard/guide/activities");
+  } catch (error: any) {
+    // Affiche le message exact du backend (ex: "Lieu introuvable")
+    toast({ 
+      title: "Erreur", 
+      description: error.message || "Vérifiez les champs.", 
+      variant: "destructive" 
+    });
+  } finally {
+    setLoading(false);
   }
+};
 
-  // Le return est maintenant à l'intérieur de la fonction CreateActivityContent
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mb-8">
-        <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link href="/dashboard/guide">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour au dashboard
-          </Link>
-        </Button>
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Créer une activité</h1>
-        <p className="text-muted-foreground">Ajoutez une nouvelle activité pour les touristes</p>
-      </div>
-
-      <Card className="max-w-2xl">
+    <div className="container mx-auto py-8">
+      <Button variant="ghost" asChild className="mb-6"><Link href="/dashboard/guide/activities"><ArrowLeft className="mr-2 h-4 w-4"/> Retour</Link></Button>
+      
+      <Card className="max-w-2xl mx-auto shadow-lg border-t-4 border-t-purple-500">
         <CardHeader>
-          <CardTitle>Informations sur l&apos;activité</CardTitle>
-          <CardDescription>Remplissez les détails de votre activité</CardDescription>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            <ActivityIcon className="text-purple-500" /> Nouvelle Expérience
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Titre de l&apos;activité *</Label>
-              <Input
-                id="title"
-                placeholder="Ex: Visite guidée des remparts"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-                disabled={isLoading}
-              />
+              <Label>Titre de l'expérience</Label>
+              <Input placeholder="ex: Atelier Poterie Traditionnelle" required 
+                value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                placeholder="Décrivez votre activité en détail..."
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                required
-                disabled={isLoading}
-                rows={5}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Prix (MAD) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  placeholder="150"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  required
-                  disabled={isLoading}
-                />
+                <Label>Prix (MAD)</Label>
+                <Input type="number" required value={formData.price} 
+                  onChange={e => setFormData({...formData, price: e.target.value})} />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="duration">Durée *</Label>
-                <Input
-                  id="duration"
-                  placeholder="Ex: 2 heures"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                  required
-                  disabled={isLoading}
-                />
+                <Label>Durée</Label>
+                <Input placeholder="ex: 2 heures" required value={formData.duration} 
+                  onChange={e => setFormData({...formData, duration: e.target.value})} />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="place">Lieu *</Label>
-              <Select
-                value={formData.placeId}
-                onValueChange={(value) => setFormData({ ...formData, placeId: value })}
-                disabled={isLoading || isLoadingPlaces}
-              >
-                <SelectTrigger id="place">
-                  <SelectValue placeholder="Sélectionnez un lieu" />
+              <Label>Lieu du patrimoine lié</Label>
+              <Select onValueChange={(value) => setFormData({...formData, placeId: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un lieu historique" />
                 </SelectTrigger>
                 <SelectContent>
-                  {places.map((place) => (
-                    <SelectItem key={place.id} value={place.id.toString()}>
-                      {place.name} - {place.city}
-                    </SelectItem>
+                  {places.map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={isLoading} className="flex-1">
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Création...
-                  </>
-                ) : (
-                  "Créer l'activité"
-                )}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
-                Annuler
-              </Button>
+            <div className="space-y-2">
+              <Label>Description détaillée</Label>
+              <Textarea rows={5} placeholder="Décrivez le programme de l'activité..." required 
+                value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
             </div>
+
+            <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Créer l'activité"}
+            </Button>
           </form>
         </CardContent>
       </Card>
     </div>
-  )
-}
-
-export default function CreateActivityPage() {
-  return (
-    <ProtectedRoute allowedRoles={["GUIDE"]}>
-      <CreateActivityContent />
-    </ProtectedRoute>
   )
 }

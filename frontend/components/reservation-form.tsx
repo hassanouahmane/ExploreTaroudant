@@ -1,119 +1,136 @@
 "use client"
 
 import { useState } from "react"
-import { reservationsService } from "@/services/reservations.service"
+import { CalendarIcon, Loader2 } from "lucide-react"
+import { format } from "date-fns"
+import { fr } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useToast } from "@/hooks/use-toast"
+import { reservationsService } from "@/services/reservations.service"
 
 interface ReservationFormProps {
-    activityId: number
-    activityTitle?: string
-    activityPrice?: number
-    onSuccess?: () => void
+  activityId?: number
+  circuitId?: number
+  activityTitle?: string
+  activityPrice: number
+  onSuccess?: () => void
 }
 
-export function ReservationForm({
-                                    activityId,
-                                    activityTitle,
-                                    activityPrice,
-                                    onSuccess
-                                }: ReservationFormProps) {
-    const [date, setDate] = useState("")
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [success, setSuccess] = useState(false)
+export function ReservationForm({ 
+  activityId, 
+  circuitId, 
+  activityTitle, 
+  activityPrice, 
+  onSuccess 
+}: ReservationFormProps) {
+  const [date, setDate] = useState<Date>()
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        setError(null)
-        setSuccess(false)
-
-        try {
-            // UTILISEZ LA BONNE MÉTHODE
-            await reservationsService.createActivityReservation(activityId, date)
-            setSuccess(true)
-            setDate("")
-
-            setTimeout(() => {
-                onSuccess?.()
-            }, 2000)
-        } catch (err: any) {
-            console.error("Erreur réservation:", err)
-            setError(err.message || "Impossible de créer la réservation")
-        } finally {
-            setLoading(false)
-        }
+  const handleSubmit = async () => {
+    if (!date) {
+      toast({
+        title: "Date requise",
+        description: "Veuillez sélectionner une date pour votre réservation.",
+        variant: "destructive",
+      })
+      return
     }
 
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Réserver cette activité</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {success && (
-                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 p-4 text-green-800 dark:bg-green-950 dark:text-green-200">
-                        <CheckCircle2 className="h-5 w-5" />
-                        <p className="text-sm font-medium">Réservation confirmée avec succès !</p>
-                    </div>
-                )}
+    if (!activityId && !circuitId) {
+       toast({
+        title: "Erreur technique",
+        description: "Aucun ID d'activité ou de circuit fourni.",
+        variant: "destructive",
+      })
+      return
+    }
 
-                {error && (
-                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-4 text-red-800 dark:bg-red-950 dark:text-red-200">
-                        <AlertCircle className="h-5 w-5" />
-                        <p className="text-sm font-medium">{error}</p>
-                    </div>
-                )}
+    try {
+      setIsLoading(true)
 
-                {activityPrice && (
-                    <div className="mb-6 rounded-lg bg-muted p-4">
-                        <p className="text-sm text-muted-foreground mb-1">Prix par personne</p>
-                        <p className="text-2xl font-bold text-primary">{activityPrice} MAD</p>
-                    </div>
-                )}
+      // Construction du payload pour correspondre aux entités JPA du Backend
+      const payload: any = {
+        reservationDate: format(date, "yyyy-MM-dd"), // Format LocalDate Java
+        status: "CONFIRMED"
+      }
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="reservationDate">Date de réservation</Label>
-                        <div className="relative">
-                            <Calendar className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                            <Input
-                                id="reservationDate"
-                                type="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                required
-                                min={new Date().toISOString().split("T")[0]}
-                                className="pl-10"
-                                disabled={loading || success}
-                            />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Sélectionnez la date souhaitée pour votre visite
-                        </p>
-                    </div>
+      // On attache soit l'activité, soit le circuit (objet imbriqué avec ID)
+      if (activityId) {
+        payload.activity = { id: activityId }
+      } else if (circuitId) {
+        payload.circuit = { id: circuitId }
+      }
 
-                    <Button
-                        type="submit"
-                        disabled={loading || success}
-                        className="w-full"
-                    >
-                        {loading && (
-                            <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        )}
-                        {loading
-                            ? "Confirmation en cours..."
-                            : success
-                                ? "Réservation confirmée ✓"
-                                : "Confirmer la réservation"
-                        }
-                    </Button>
-                </form>
-            </CardContent>
-        </Card>
-    )
+      // Appel de la méthode CORRIGÉE du service
+      await reservationsService.createReservation(payload)
+
+      toast({
+        title: "Réservation confirmée !",
+        description: `Votre place pour "${activityTitle}" est réservée.`,
+        className: "bg-emerald-50 border-emerald-200 text-emerald-800",
+      })
+
+      if (onSuccess) onSuccess()
+      
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Erreur",
+        description: "La réservation a échoué. Veuillez réessayer.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-2">
+        <label className="text-sm font-medium text-slate-200">Choisir une date</label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal bg-white/10 border-white/10 text-white hover:bg-white/20 hover:text-white",
+                !date && "text-slate-400"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, "PPP", { locale: fr }) : <span>Sélectionner une date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 bg-white" align="start">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              disabled={(date) => date < new Date()} // Empêche les dates passées (Logique Backend #6)
+              initialFocus
+              className="rounded-md border shadow-lg"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <Button 
+        className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold h-12 text-lg shadow-lg transition-all active:scale-95" 
+        onClick={handleSubmit}
+        disabled={isLoading || !date}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Confirmation...
+          </>
+        ) : (
+          `Confirmer la réservation`
+        )}
+      </Button>
+    </div>
+  )
 }

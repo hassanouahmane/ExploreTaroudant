@@ -54,6 +54,12 @@ export const eventsService = {
     })
   },
 
+async getMyProposedEvents(): Promise<Event[]> {
+  return apiRequest<Event[]>("/events/my-proposals", {
+    method: "GET",
+  })
+},
+
   async deleteEvent(id: number): Promise<void> {
     return apiRequest<void>(`/events/${id}`, {
       method: "DELETE",

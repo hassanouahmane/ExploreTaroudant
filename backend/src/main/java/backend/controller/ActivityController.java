@@ -57,13 +57,29 @@ public class ActivityController {
         return ResponseEntity.ok(activityService.getActivitiesByGuide(guideId));
     }
 
-    @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'GUIDE')")
-    public ResponseEntity<Activity> createActivity(
-            @RequestBody Activity activity, 
-            @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(activityService.createActivity(activity, currentUser));
+   @PostMapping
+@PreAuthorize("hasAnyRole('ADMIN', 'GUIDE')")
+public ResponseEntity<Activity> createActivity(
+        @RequestBody Activity activity, 
+        @AuthenticationPrincipal User currentUser) {
+    
+    // Ajoutez un log ici pour voir si Spring entre dans la méthode
+    System.out.println("Création d'activité reçue : " + activity.getTitle());
+    
+    // Assurez-vous que l'objet activity reçu a bien un ID dans son champ place
+    if (activity.getPlace() == null || activity.getPlace().getId() == null) {
+         throw new RuntimeException("L'ID du lieu est obligatoire");
     }
+
+    return ResponseEntity.ok(activityService.createActivity(activity, currentUser));
+}
+
+@GetMapping("/my-activities")
+@PreAuthorize("hasRole('GUIDE')")
+public ResponseEntity<List<Activity>> getMyActivities(@AuthenticationPrincipal User currentUser) {
+    // Le guide récupère TOUTES ses activités (ACTIVE + PENDING)
+    return ResponseEntity.ok(activityService.getActivitiesByUserId(currentUser.getId()));
+}
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")

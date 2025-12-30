@@ -45,6 +45,13 @@ public class EventController {
         return ResponseEntity.ok(eventService.getPendingEvents());
     }
 
+    @GetMapping("/my-proposals")
+@PreAuthorize("hasRole('GUIDE')")
+public ResponseEntity<List<Event>> getMyProposedEvents(@AuthenticationPrincipal User currentUser) {
+    // Utilisation du service pour filtrer par utilisateur connecté
+    return ResponseEntity.ok(eventService.getEventsByProposer(currentUser));
+}
+
     @GetMapping("/upcoming")
     public ResponseEntity<List<Event>> getUpcomingEvents() {
         return ResponseEntity.ok(eventService.getUpcomingEvents());

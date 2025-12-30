@@ -5,6 +5,9 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import backend.entities.Status;
 
 import java.time.LocalDateTime;
@@ -49,6 +52,17 @@ public class User implements UserDetails {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
+    @OneToOne(mappedBy = "user", fetch = FetchType.EAGER)
+    @JsonManagedReference // C'est LUI la clé pour que le JSON s'affiche
+    private Guide guide;
+
+    public Guide getGuide() {
+        return guide;
+    }
+
+    public void setGuide(Guide guide) {
+        this.guide = guide;
+    }
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -2,6 +2,12 @@
 export type Role = "TOURIST" | "GUIDE" | "ADMIN";
 export type Status = "ACTIVE" | "PENDING" | "SUSPENDED";
 
+export interface Guide {
+  id: number;
+  bio: string;
+  languages: string;
+}
+
 export interface User {
   id: number;
   fullName: string;
@@ -10,6 +16,7 @@ export interface User {
   role: Role;
   status: Status;
   createdAt: string;
+  guide?: Guide; 
 }
 
 export interface AuthResponse {
@@ -41,8 +48,9 @@ export interface Activity {
   description: string;
   price: number;
   duration: string;
-  place: { id: number; name?: string; city?: string };
-  guide?: { id: number; user?: { fullName: string } }; 
+  imageUrl?: string; // Ajouté pour l'image de l'activité
+  place?: { id: number; name: string; city: string }; // Rendu optionnel et typé
+  guide?: { id: number; fullName?: string; user?: { fullName: string } }; // Rendu optionnel et typé
   status?: "ACTIVE" | "PENDING"; 
   placeId?: number; 
 }
@@ -64,11 +72,15 @@ export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 
 export interface Reservation {
   id: number;
-  reservationDate: string;
+  reservationDate: string; // Format ISO string venant du backend
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-  user?: { id: number; fullName: string; email: string };
-  activity?: { id: number; title: string; price: number };
-  circuit?: { id: number; title: string; price: number };
+  
+  // ICI : On autorise activity OU circuit à être undefined
+  activity?: Activity; 
+  circuit?: Circuit;
+  
+  // Info user si besoin
+  user?: { id: number; fullName: string };
 }
 
 
@@ -87,14 +99,7 @@ export interface Review {
   };
 }
 
-export interface Place {
-    id: number
-    name: string
-    description: string
-    city: string
-    imageUrl?: string
-    createdAt: string
-}
+
 
 export interface Event {
     id: number

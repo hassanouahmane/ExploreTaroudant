@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,45 +28,39 @@ export function ReviewForm({ placeId, placeName, onSuccess }: ReviewFormProps) {
 
     const trimmedComment = comment.trim()
 
+    // Validations locales
     if (trimmedComment.length < 10) {
-      toast({
-        title: "Erreur",
-        description: "Votre commentaire doit contenir au moins 10 caractères",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (trimmedComment.length > 500) {
-      toast({
-        title: "Erreur",
-        description: "Votre commentaire ne peut pas dépasser 500 caractères",
-        variant: "destructive",
-      })
+      toast({ title: "Erreur", description: "Minimum 10 caractères.", variant: "destructive" })
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      await reviewsService.createReview({
-        placeId,
-        rating,
-        comment: trimmedComment,
-      })
+      // CORRECTION ICI : Passer les 3 arguments séparément au lieu d'un objet {}
+      // Votre service est défini comme : createReview(placeId, rating, comment)
+      await reviewsService.createReview(
+        Number(placeId), 
+        rating, 
+        trimmedComment
+      )
 
       toast({
         title: "Avis publié",
-        description: "Merci pour votre avis!",
+        description: "Merci pour votre partage !",
       })
 
       setRating(5)
       setComment("")
-      onSuccess?.()
-    } catch (error) {
+      
+      if (onSuccess) {
+        onSuccess()
+      }
+    } catch (error: any) {
+      console.error("Submit Error:", error)
       toast({
         title: "Erreur",
-        description: "Impossible de publier votre avis. Veuillez réessayer.",
+        description: "Impossible de publier l'avis. Vérifiez votre connexion.",
         variant: "destructive",
       })
     } finally {
@@ -79,58 +72,49 @@ export function ReviewForm({ placeId, placeName, onSuccess }: ReviewFormProps) {
   const isValidLength = characterCount >= 10 && characterCount <= 500
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Star className="h-5 w-5" />
-          Écrire un avis
+    <Card className="border-none shadow-none bg-transparent">
+      <CardHeader className="px-0 pt-0">
+        <CardTitle className="flex items-center gap-2 text-xl font-bold">
+          <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
+          Votre expérience à {placeName}
         </CardTitle>
-        <CardDescription>{placeName}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Note</Label>
-            <div className="flex items-center gap-2">
-              <StarRating rating={rating} onChange={setRating} size={28} />
-              <span className="text-sm text-muted-foreground">({rating}/5)</span>
+      <CardContent className="px-0">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <Label className="text-base font-bold">Note globale</Label>
+            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl w-fit">
+              <StarRating rating={rating} onChange={setRating} size={32} />
+              <span className="font-black text-lg text-slate-700">{rating}/5</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="comment">Votre commentaire</Label>
+          <div className="space-y-3">
+            <Label htmlFor="comment" className="text-base font-bold">Commentaire</Label>
             <Textarea
               id="comment"
-              placeholder="Partagez votre expérience avec ce lieu..."
+              placeholder="Racontez-nous votre visite..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              rows={5}
+              className="rounded-2xl border-slate-200 focus:ring-emerald-500 min-h-[150px] text-base"
               disabled={isSubmitting}
               required
-              minLength={10}
-              maxLength={500}
             />
-            <div className="flex items-center justify-between text-sm">
-              <span className={characterCount < 10 ? "text-destructive" : "text-muted-foreground"}>
-                Minimum 10 caractères
-              </span>
-              <span className={characterCount > 500 ? "text-destructive" : "text-muted-foreground"}>
-                {characterCount}/500
-              </span>
+            <div className="flex justify-between text-xs font-medium uppercase tracking-wider text-slate-400">
+              <span className={characterCount < 10 ? "text-rose-500" : ""}>Min. 10 caractères</span>
+              <span>{characterCount}/500</span>
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || !isValidLength}>
+          <Button 
+            type="submit" 
+            className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-lg font-bold shadow-lg shadow-emerald-100" 
+            disabled={isSubmitting || !isValidLength}
+          >
             {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Publication en cours...
-              </>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
-              <>
-                <Star className="mr-2 h-4 w-4" />
-                Publier l'avis
-              </>
+              "Publier mon témoignage"
             )}
           </Button>
         </form>

@@ -4,6 +4,7 @@ import backend.entities.Circuit;
 import backend.entities.User;
 import backend.service.CircuitService;
 import backend.service.GuideService;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,7 +44,20 @@ public class GuideController {
         User guide = guideService.updateGuideProfile(currentUser.getEmail(), updatedGuide);
         return ResponseEntity.ok(guide);
     }
+// backend/controller/GuideController.java
 
+@PutMapping("/profile/technical") // Assurez-vous que c'est bien PUT
+@PreAuthorize("hasRole('GUIDE')")
+public ResponseEntity<User> updateTechnicalInfo(
+        @AuthenticationPrincipal User currentUser,
+        @RequestBody Map<String, String> updates) {
+    
+    // Log pour debugger
+    System.out.println("Requête PUT reçue pour le profil technique de: " + currentUser.getEmail());
+    
+    User user = guideService.updateTechnicalInfo(currentUser.getEmail(), updates);
+    return ResponseEntity.ok(user);
+}
     // --- GESTION DES CIRCUITS PROPRES AU GUIDE ---
 
     @PostMapping("/circuits")

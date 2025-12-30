@@ -48,7 +48,7 @@ public class PlaceController {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN', 'GUIDE')")
     public ResponseEntity<List<Place>> getPendingPlaces() {
         return ResponseEntity.ok(placeService.getPendingPlaces());
     }

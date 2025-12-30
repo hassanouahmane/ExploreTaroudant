@@ -65,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/me", "/api/auth/profile").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // Routes Admin
                         .requestMatchers("/api/guide/**").hasRole("GUIDE") // Routes Guide
+                        .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/activities/**", "/api/places/**").permitAll() // Routes publiques (non-authentifiées)
                         .anyRequest().authenticated() // Toutes les autres routes nécessitent une authentification
                 )
