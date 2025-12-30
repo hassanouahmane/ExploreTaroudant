@@ -79,18 +79,5 @@ Le projet est entièrement "Dockerisé". Assurez-vous d'avoir **Docker Desktop**
 
 ---
 
-## 🔑 Utilisateurs de Test (Demo)
-
-Pour tester les différentes fonctionnalités, voici des comptes pré-configurés.
-**Mot de passe pour tous les comptes :** `password123`
-
-| Rôle | Email (Login) | Nom | Statut | Note |
-| :--- | :--- | :--- | :--- | :--- |
-| **ADMIN** | `admin@taroudant.com` | Super Admin | **ACTIVE** | Accès total au Dashboard Admin. |
-| **GUIDE** | `hamza@guide.com` | Hamza Taroudant | **ACTIVE** | Peut créer des activités et voir son profil public. |
-| **GUIDE** | `abdemour@gmail.com` | Abde Mour | **PENDING** | *Compte non activé*. Ne peut pas se connecter tant que l'Admin ne le valide pas. |
-| **TOURISTE** | `jean@tourist.com` | Jean Touriste | **ACTIVE** | Peut réserver et voir le contenu. |
-
----
-
 ## 📂 Structure du Projet
+ExploreTaroudant/ ├── backend/ # Code source Java Spring Boot │ ├── src/main/java/backend/ │ │ ├── controller/ # API Endpoints │ │ ├── entities/ # Modèles BDD (User, Guide, Place, Reservation...) │ │ ├── repository/ # Interfaces JPA │ │ ├── service/ # Logique métier │ │ └── security/ # Config JWT │ └── Dockerfile │ ├── frontend/ # Code source Next.js │ ├── src/app/ # Pages (Dashboard, Auth, Home) │ ├── src/components/ # Composants UI réutilisables │ ├── src/services/ # Appels API (auth.service, guide.service...) │ └── Dockerfile │ ├── docker-compose.yml # Orchestration des services └── README.md
