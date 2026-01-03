@@ -61,7 +61,7 @@ Le projet est entièrement "Dockerisé". Assurez-vous d'avoir **Docker Desktop**
 
 1.  **Cloner le projet :**
     ```bash
-    git clone [https://github.com/votre-username/ExploreTaroudant.git](https://github.com/votre-username/ExploreTaroudant.git)
+    git clone https://github.com/hassanouahmane/ExploreTaroudant.git
     cd ExploreTaroudant
     ```
 
